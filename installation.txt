@@ -2,3 +2,4 @@ pip install flask
 pip install flask_mail
 pip install flask_sqlalchemy
 pip install pymysql
+pip install flask_cors

@@ -2,11 +2,12 @@ from flask import Blueprint,make_response,render_template,request
 import uuid
 import hashlib
 from app import db,mail
-from models import Customer
-
+from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan
 from flask_mail import Mail, Message
-# from flaskr import var
-from models import Customer
+from datetime import date
+from sqlalchemy import and_
+import json
+
 user = Blueprint('user',__name__)
 
 
@@ -103,4 +104,49 @@ def user_profile(id):
             "message": "User: "+id+" doesn't exist."
         }
 
-# app.register_blueprint(test)
+@user.route("/user/active_plan/<id>", methods=['GET'])
+def active_plan(id):
+    today = date.today()
+    today = today.strftime("%Y-%m-%d")
+    info = Purchase_hist.query.join(
+            Plan_price, Plan_price.plan_price_id == Purchase_hist.tbl_plan_price_id
+        ).join(
+            Location, Location.location_id == Plan_price.tbl_location_id
+        ).join(
+            Subscription_plan,Subscription_plan.plan_id == Plan_price.tbl_plan_id
+        ).with_entities(
+            Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, Location.state, Purchase_hist.price, Purchase_hist.end_date
+        ).filter(
+            and_(
+                Purchase_hist.start_date <= today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == id
+            )
+        ).all()
+
+    if(bool(info)):
+        json_list = []
+        for i in range(0, len(info)):
+            if info[i][0] == 1:
+                plan_type = "Solo"
+            elif info[i][0] == 2:
+                plan_type = "Dual"
+            elif info[i][0] == 4:
+                plan_type = "Quad"
+            
+            end_date = info[i][7].strftime("%Y-%m-%d")
+            value = {
+                "plan_type": plan_type,
+                "duration": info[i][1],
+                "desk_no": info[i][2],
+                "address": info[i][3],
+                "city": info[i][4],
+                "state": info[i][5],
+                "price": info[i][6],
+                "expiry_date": end_date
+            }
+
+            json_list.append(value)
+        return json.dumps(json_list)
+    else:
+        return{
+            "message": "No Active Plans of User: "+id+"."
+        }
