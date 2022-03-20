@@ -115,7 +115,8 @@ def active_plan(id):
         ).join(
             Subscription_plan,Subscription_plan.plan_id == Plan_price.tbl_plan_id
         ).with_entities(
-            Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, Location.state, Purchase_hist.price, Purchase_hist.end_date
+            Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, 
+            Location.state, Purchase_hist.price, Purchase_hist.end_date
         ).filter(
             and_(
                 Purchase_hist.start_date <= today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == id
@@ -149,4 +150,59 @@ def active_plan(id):
     else:
         return{
             "message": "No Active Plans of User: "+id+"."
+        }
+
+@user.route("/user/purchase_history/<id>", methods=['GET'])
+def purchase_history(id):
+    today = date.today()
+    today = today.strftime("%Y-%m-%d")
+    info = Purchase_hist.query.join(
+            Plan_price, Plan_price.plan_price_id == Purchase_hist.tbl_plan_price_id
+        ).join(
+            Location, Location.location_id == Plan_price.tbl_location_id
+        ).join(
+            Subscription_plan,Subscription_plan.plan_id == Plan_price.tbl_plan_id
+        ).with_entities(
+            Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, 
+            Location.state, Purchase_hist.price, Purchase_hist.start_date, Purchase_hist.end_date
+        ).filter(Purchase_hist.tbl_customer_id == id).all()
+    
+    if(bool(info)):
+        json_list = []
+        for i in range(0, len(info)):
+            if info[i][0] == 1:
+                plan_type = "Solo"
+            elif info[i][0] == 2:
+                plan_type = "Dual"
+            elif info[i][0] == 4:
+                plan_type = "Quad"
+            
+            start_date = info[i][7].strftime("%Y-%m-%d")
+            end_date = info[i][8].strftime("%Y-%m-%d")
+
+            if start_date<=today and end_date>=today:
+                plan_status = "Active"
+            elif start_date>today and end_date>=today:
+                plan_status = "Upcoming"
+            elif end_date<today:
+                plan_status = "Expired"
+
+            value = {
+                "plan_status": plan_status,
+                "plan_type": plan_type,
+                "duration": info[i][1],
+                "desk_no": info[i][2],
+                "address": info[i][3],
+                "city": info[i][4],
+                "state": info[i][5],
+                "price": info[i][6],
+                "start_date": start_date,
+                "expiry_date": end_date
+            }
+
+            json_list.append(value)
+        return json.dumps(json_list)
+    else:
+        return{
+            "message": "User: "+id+" doesn't exist."
         }
