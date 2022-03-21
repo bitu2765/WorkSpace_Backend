@@ -4,9 +4,11 @@ import hashlib
 from app import db,mail
 from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan
 from flask_mail import Mail, Message
-from datetime import date
+from datetime import date, timedelta
 from sqlalchemy import and_
 import json
+import math
+from dateutil import parser
 
 user = Blueprint('user',__name__)
 
@@ -151,6 +153,125 @@ def active_plan(id):
         return{
             "message": "No Active Plans of User: "+id+"."
         }
+
+@user.route("/user/purchase_plan/<userid>", methods=['POST'])
+def purchase_plan(userid):
+    errors = []
+    is_error = False
+
+    if request.method == 'POST':
+        content_type = request.headers.get('Content-Type')
+        if content_type == 'application/json':
+            data = request.json
+            plan_id = data['plan_id']
+            location_id = data['location_id']
+            start_date = data['start_date']
+
+            start_date = parser.parse(start_date)
+            if start_date.strftime("%Y-%m-%d")<date.today().strftime("%Y-%m-%d"):
+                return{
+                    "message": "Plan Starting Date must be on or after "+ date.today().strftime("%Y-%m-%d") +"."
+                }
+            
+            valid_plan_id = Subscription_plan.query.filter_by(plan_id=plan_id).all()
+            if not(bool(valid_plan_id)):
+                is_error = True
+                errors.append("Plan id: "+str(plan_id)+" doesn't exist.")
+            
+            valid_user_id = Customer.query.filter_by(customer_id=userid).all()
+            if not(bool(valid_user_id)):
+                is_error = True
+                errors.append("User id: "+userid+" doesn't exist.")
+            
+            valid_location_id = Location.query.filter_by(location_id=location_id).all()
+            if not(bool(valid_location_id)):
+                is_error = True
+                errors.append("Location id: "+location_id+" doesn't exist.")
+            
+            if is_error:
+                return{
+                    "status_code": 403,
+                    "errors": errors
+                }
+            
+            plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(Plan_price.tbl_location_id == location_id).all()
+            
+            alloted_desk_no = []
+            for i in range(0, len(plan_price_id)):
+                deskno = Purchase_hist.query.with_entities(Purchase_hist.desk_no).filter(Purchase_hist.tbl_plan_price_id == plan_price_id[i][0]).all()
+                if bool(deskno):
+                    for j in range(0,len(deskno)):
+                        alloted_desk_no.append(list(map(int,deskno[j][0].split(','))))
+                else:
+                    continue
+
+            final_alloted_desk_no = []
+            for i in range(0,len(alloted_desk_no)):
+                for j in range(0,len(alloted_desk_no[i])):
+                    final_alloted_desk_no.append(alloted_desk_no[i][j])
+
+            capacity = Location.query.with_entities(Location.capacity).filter(Location.location_id == location_id).first()
+            desk_slots={}
+            for i in range(1,capacity[0]+1):
+                desk_slots[i] = True
+
+            for i in range(0,len(final_alloted_desk_no)):
+                desk_slots[final_alloted_desk_no[i]] = False
+            
+            avail_slots = []
+            for key,val in desk_slots.items():
+                if val == True:
+                    avail_slots.append(key)
+            required_desk_slots = Subscription_plan.query.with_entities(Subscription_plan.capacity).filter(Subscription_plan.plan_id == plan_id).first()
+
+            if required_desk_slots[0]>len(avail_slots):
+                return{
+                    "message": "No more Available Desks. Hoping for serving you better in Future."
+                }
+            
+            allotment = []
+            for i in range(0,required_desk_slots[0]):
+                allotment.append(avail_slots[i])
+                desk_slots[allotment[i]] = False
+
+            desk_no = ''
+            for i in range(len(allotment)):
+                desk_no = desk_no + ',' + str(allotment[i])
+            desk_no = desk_no[1:]
+
+            price_discount_duration = Subscription_plan.query.join(
+                    Plan_price, Subscription_plan.plan_id == Plan_price.tbl_plan_id
+                ).with_entities(
+                    Plan_price.price, Subscription_plan.discount, Subscription_plan.duration
+                ).filter(Subscription_plan.plan_id == plan_id).first()
+            price = price_discount_duration[0]-((price_discount_duration[0]*price_discount_duration[1])/100)
+            price = int(math.ceil(price))
+
+            purchase_date = date.today().strftime("%Y-%m-%d")
+
+            end_date =  start_date + timedelta(days=price_discount_duration[2])
+            end_date = end_date.strftime("%Y-%m-%d") 
+
+            purchase_history = Purchase_hist(
+                tbl_customer_id = userid,
+                tbl_plan_price_id = plan_id,
+                desk_no = desk_no,
+                price = price,
+                purchase_date = purchase_date,
+                start_date = start_date,
+                end_date = end_date
+            )
+            db.session.add(purchase_history)
+            db.session.commit()
+
+            return {
+                "message": "Plan purchased Successfully.",
+                "status_code": 200
+            }
+        else:
+            return{
+                "message": "Content-Type not supported!"
+            }    
 
 @user.route("/user/purchase_history/<id>", methods=['GET'])
 def purchase_history(id):
