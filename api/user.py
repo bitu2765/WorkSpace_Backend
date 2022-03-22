@@ -1,4 +1,4 @@
-from flask import Blueprint,make_response,render_template,request
+from flask import Blueprint,make_response,render_template,request,g
 import uuid
 import hashlib
 from app import db,mail
@@ -9,6 +9,7 @@ from sqlalchemy import and_
 import json
 import math
 from dateutil import parser
+from userauth import user_auth
 
 user = Blueprint('user',__name__)
 
@@ -88,23 +89,32 @@ def verify_user():
     else:
         return {"message": "User with this token not exists. please register your self priorly", "status_code": 403}
 
-@user.route("/user/<id>", methods=['GET'])
-def user_profile(id):
-    info = Customer.query.with_entities(Customer.name, Customer.email, Customer.mobile_no).filter_by(customer_id=id).first()
+@user.route("/user/profile", methods=['GET'])
+@user_auth
+def user_profile():
+    info = Customer.query.with_entities(Customer.name, Customer.email, Customer.mobile_no).filter_by(customer_id=g.token).first()
     if bool(info):
-        return {
-            "customer": {
-                id: {
+        resp = make_response(
+            {
+                "status_code":200,
+                "customer": {
                     "name": info[0],
                     "email": info[1],
                     "mobile_no": info[2]
                 }
             }
-        }
+        )
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
     else:
-        return{
-            "message": "User: "+id+" doesn't exist."
-        }
+        resp = make_response(
+            {
+                "status_code":404,
+                "message": "User doesn't exist."
+            }
+        )
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
 
 @user.route("/user/active_plan/<id>", methods=['GET'])
 def active_plan(id):

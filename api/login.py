@@ -14,9 +14,15 @@ def logout_fun():
     Userlog.query.filter_by(login_token = user_token).delete()
     Adminlog.query.filter_by(login_token = user_token).delete()
     db.session.commit()
-    resp = make_response({"Msg":"Logout Succesfully"})
+    resp = make_response(
+        {
+            "Msg":"Logout Succesfully",
+            "status_code":200
+        }
+        )
     resp.set_cookie("auth_id",'',expires=0)
     resp.set_cookie("auth_token",'',expires=0)
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
 
 @log.route('/login',methods=['POST'])
@@ -41,6 +47,7 @@ def login_fun():
                     cnt+=1
                     us_token = bool(db.session.query(Userlog).filter_by(login_token=hashlib.sha512((token+str(cnt)).encode()).hexdigest()).first())
                 response["Msg"] = "User Succesfully Logged In!" 
+                response["status_code"] = 200
                 response["auth_id"]=hashlib.sha512(("user"+user).encode()).hexdigest()
                 response["auth_token"]=hashlib.sha512((token+str(cnt)).encode()).hexdigest()
                 user_log = Userlog(customer_id=user,login_token=response['auth_token'])
@@ -53,6 +60,7 @@ def login_fun():
                 return resp
             else:
                 exist = bool(db.session.query(Customer).filter_by(customer_id=user,password=passwrd,email_verify=False).first())
+                response["status_code"] = 401
                 if exist:
                     response["Msg"] = "Please Verify Email First "
                 else:
@@ -69,6 +77,7 @@ def login_fun():
                     cnt+=1
                     us_token = bool(db.session.query(Adminlog).filter_by(login_token=hashlib.sha512((token+str(cnt)).encode()).hexdigest()).first())
                 response["Msg"] = "User Succesfully Logged In!" 
+                response["status_code"] = 200
                 response["auth_id"]=hashlib.sha512(("admin"+user).encode()).hexdigest()
                 response["auth_token"]=hashlib.sha512((token+str(cnt)).encode()).hexdigest()
                 admin_log = Adminlog(admin_email=user,login_token=response['auth_token'])
@@ -78,10 +87,12 @@ def login_fun():
                 resp.set_cookie('auth_id', response["auth_id"],max_age=60*60*24*31)
                 resp.set_cookie('auth_token', response["auth_token"],max_age=60*60*24*31)
             else:
+                response["status_code"] = 401
                 response["Msg"] = "Incorrect Username or Password "
                 return jsonify(response)
         else:
-            response["Msg"]="Currently Admin Login not available"
+            response["status_code"] = 404
+            response["Msg"]="Select Appropriate User Type"
         return jsonify(response)
     else:
         return jsonify({"Msg": "Content-Type not supported!"})
@@ -92,7 +103,7 @@ def login_fun():
 @log.route('/user/verify',methods=['GET'])
 @user_auth
 def verify_user():
-    resp = make_response({"success":1})
+    resp = make_response({"status_code":200})
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
 
@@ -100,5 +111,5 @@ def verify_user():
 @admin_auth
 def admin_verify():
     return {
-        "success":1
+        "status_code":200
     }

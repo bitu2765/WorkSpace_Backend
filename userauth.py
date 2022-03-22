@@ -14,7 +14,7 @@ def user_auth(f):
         token="token-123"
         log_exist = bool(db.session.query(Userlog).filter_by(login_token=user_token).first())
         # datetime.datetime.now()#datetime.datetime.strptime(str(user_detail['expiry_date']), '%yyyy-%mm-%dd %HH:%MM:%SS')
-        # print(datetime.datetime.now())
+        # print(log_exist)
         # print(date>datetime.datetime.now())
         # id = hashlib.sha512(("user"+user_detail['customer_id']).encode()).hexdigest()
         if log_exist:
@@ -28,7 +28,7 @@ def user_auth(f):
                     g.id = 1
                     return f(*args,**kwargs)
 
-        resp = make_response({"success":0})
+        resp = make_response({"status_code":404})
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
         # return Response("Authorization Failed!!")
@@ -59,7 +59,7 @@ def admin_auth(f):
                     g.id = 2
                     return f(*args,**kwargs)
 
-        resp = make_response({"success":0})
+        resp = make_response({"status_code":404})
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
         # return Response("Authorization Failed!!")
