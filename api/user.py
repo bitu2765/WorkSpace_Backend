@@ -207,7 +207,7 @@ def upcoming_plan():
             value = {
                 "plan_type": plan_type,
                 "duration": info[i][1],
-                "desk_no": info[i][2],
+                "desk_no": info[i][2].split(','),
                 "address": info[i][3],
                 "city": info[i][4],
                 "state": info[i][5],
