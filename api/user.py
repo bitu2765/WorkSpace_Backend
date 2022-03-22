@@ -150,7 +150,7 @@ def active_plan():
             value = {
                 "plan_type": plan_type,
                 "duration": info[i][1],
-                "desk_no": info[i][2],
+                "desk_no": info[i][2].split(','),
                 "address": info[i][3],
                 "city": info[i][4],
                 "state": info[i][5],
@@ -161,7 +161,7 @@ def active_plan():
         
         resp = make_response({
             "status_code": 200,
-            "active_plans":json.dumps(json_list)
+            "active_plans":json_list
         })
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
@@ -403,7 +403,7 @@ def purchase_history():
                 "plan_status": plan_status,
                 "plan_type": plan_type,
                 "duration": info[i][1],
-                "desk_no": info[i][2],
+                "desk_no": info[i][2].split(','),
                 "address": info[i][3],
                 "city": info[i][4],
                 "state": info[i][5],
@@ -416,7 +416,7 @@ def purchase_history():
         
         resp = make_response({
             "status_code": 200,
-            "purchase_history": json.dumps(json_list)
+            "purchase_history": json_list
         })
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
