@@ -116,8 +116,9 @@ def user_profile():
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
 
-@user.route("/user/active_plan/<id>", methods=['GET'])
-def active_plan(id):
+@user.route("/user/active_plan", methods=['GET'])
+@user_auth
+def active_plan():
     today = date.today()
     today = today.strftime("%Y-%m-%d")
     info = Purchase_hist.query.join(
@@ -131,11 +132,11 @@ def active_plan(id):
             Location.state, Purchase_hist.price, Purchase_hist.end_date
         ).filter(
             and_(
-                Purchase_hist.start_date <= today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == id
+                Purchase_hist.start_date <= today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == g.token
             )
         ).all()
 
-    if(bool(info)):
+    if bool(info):
         json_list = []
         for i in range(0, len(info)):
             if info[i][0] == 1:
@@ -156,16 +157,25 @@ def active_plan(id):
                 "price": info[i][6],
                 "expiry_date": end_date
             }
-
             json_list.append(value)
-        return json.dumps(json_list)
+        
+        resp = make_response({
+            "status_code": 200,
+            "active_plans":json.dumps(json_list)
+        })
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
     else:
-        return{
-            "message": "No Active Plans of User: "+id+"."
-        }
+        resp = make_response({
+            "status_code":404,
+            "message": "No Active Plans of User: "+g.token+"."
+        })
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
 
-@user.route("/user/purchase_plan/<userid>", methods=['POST'])
-def purchase_plan(userid):
+@user.route("/user/purchase_plan", methods=['POST'])
+@user_auth
+def purchase_plan():
     errors = []
     is_error = False
 
@@ -179,30 +189,35 @@ def purchase_plan(userid):
 
             start_date = parser.parse(start_date)
             if start_date.strftime("%Y-%m-%d")<date.today().strftime("%Y-%m-%d"):
-                return{
+                resp1 = make_response({
+                    "status_code": 422,
                     "message": "Plan Starting Date must be on or after "+ date.today().strftime("%Y-%m-%d") +"."
-                }
+                })
+                resp1.headers['Access-Control-Allow-Credentials'] = 'true'
+                return resp1
             
             valid_plan_id = Subscription_plan.query.filter_by(plan_id=plan_id).all()
             if not(bool(valid_plan_id)):
                 is_error = True
-                errors.append("Plan id: "+str(plan_id)+" doesn't exist.")
+                errors.append("Plan id doesn't exist.")
             
-            valid_user_id = Customer.query.filter_by(customer_id=userid).all()
+            valid_user_id = Customer.query.filter_by(customer_id=g.token).all()
             if not(bool(valid_user_id)):
                 is_error = True
-                errors.append("User id: "+userid+" doesn't exist.")
+                errors.append("User id doesn't exist.")
             
             valid_location_id = Location.query.filter_by(location_id=location_id).all()
             if not(bool(valid_location_id)):
                 is_error = True
-                errors.append("Location id: "+location_id+" doesn't exist.")
+                errors.append("Location id doesn't exist.")
             
             if is_error:
-                return{
-                    "status_code": 403,
+                resp2 = make_response({
+                    "status_code": 404,
                     "errors": errors
-                }
+                })
+                resp2.headers['Access-Control-Allow-Credentials'] = 'true'
+                return resp2
             
             plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(Plan_price.tbl_location_id == location_id).all()
             
@@ -235,9 +250,12 @@ def purchase_plan(userid):
             required_desk_slots = Subscription_plan.query.with_entities(Subscription_plan.capacity).filter(Subscription_plan.plan_id == plan_id).first()
 
             if required_desk_slots[0]>len(avail_slots):
-                return{
-                    "message": "No more Available Desks. Hoping for serving you better in Future."
-                }
+                resp3 = make_response({
+                    "status_code": 404,
+                    "message": "No more Available Desks. Hoping for serving you better Next Time."
+                })
+                resp3.headers['Access-Control-Allow-Credentials'] = 'true'
+                return resp3
             
             allotment = []
             for i in range(0,required_desk_slots[0]):
@@ -263,7 +281,7 @@ def purchase_plan(userid):
             end_date = end_date.strftime("%Y-%m-%d") 
 
             purchase_history = Purchase_hist(
-                tbl_customer_id = userid,
+                tbl_customer_id = g.token,
                 tbl_plan_price_id = plan_id,
                 desk_no = desk_no,
                 price = price,
@@ -274,17 +292,23 @@ def purchase_plan(userid):
             db.session.add(purchase_history)
             db.session.commit()
 
-            return {
-                "message": "Plan purchased Successfully.",
-                "status_code": 200
-            }
+            resp = make_response({
+                "status_code": 200,
+                "message": "Plan purchased Successfully."
+            })
+            resp.headers['Access-Control-Allow-Credentials'] = 'true'
+            return resp
         else:
-            return{
-                "message": "Content-Type not supported!"
-            }    
+            resp = make_response({
+                "status_code": 415,
+                "message": "Content-Type not supported!" 
+            })
+            resp.headers['Access-Control-Allow-Credentials'] = 'true'
+            return resp
 
-@user.route("/user/purchase_history/<id>", methods=['GET'])
-def purchase_history(id):
+@user.route("/user/purchase_history", methods=['GET'])
+@user_auth
+def purchase_history():
     today = date.today()
     today = today.strftime("%Y-%m-%d")
     info = Purchase_hist.query.join(
@@ -296,9 +320,9 @@ def purchase_history(id):
         ).with_entities(
             Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, 
             Location.state, Purchase_hist.price, Purchase_hist.start_date, Purchase_hist.end_date
-        ).filter(Purchase_hist.tbl_customer_id == id).all()
+        ).filter(Purchase_hist.tbl_customer_id == g.token).all()
     
-    if(bool(info)):
+    if bool(info):
         json_list = []
         for i in range(0, len(info)):
             if info[i][0] == 1:
@@ -332,8 +356,17 @@ def purchase_history(id):
             }
 
             json_list.append(value)
-        return json.dumps(json_list)
+        
+        resp = make_response({
+            "status_code": 200,
+            "purchase_history": json.dumps(json_list)
+        })
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
     else:
-        return{
-            "message": "User: "+id+" doesn't exist."
-        }
+        resp = make_response({
+            "status_code":404,
+            "message": "User doesn't exist."
+        })
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
