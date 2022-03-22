@@ -168,7 +168,7 @@ def active_plan():
     else:
         resp = make_response({
             "status_code":404,
-            "message": "No Active Plans of User: "+g.token+"."
+            "message": "No Active Plans."
         })
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
