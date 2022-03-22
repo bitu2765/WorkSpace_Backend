@@ -186,7 +186,7 @@ def upcoming_plan():
             Subscription_plan,Subscription_plan.plan_id == Plan_price.tbl_plan_id
         ).with_entities(
             Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, 
-            Location.state, Purchase_hist.price, Purchase_hist.end_date
+            Location.state, Purchase_hist.price, Purchase_hist.start_date
         ).filter(
             and_(
                 Purchase_hist.start_date > today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == g.token
@@ -203,7 +203,7 @@ def upcoming_plan():
             elif info[i][0] == 4:
                 plan_type = "Quad"
             
-            end_date = info[i][7].strftime("%Y-%m-%d")
+            start_date = info[i][7].strftime("%Y-%m-%d")
             value = {
                 "plan_type": plan_type,
                 "duration": info[i][1],
@@ -212,7 +212,7 @@ def upcoming_plan():
                 "city": info[i][4],
                 "state": info[i][5],
                 "price": info[i][6],
-                "expiry_date": end_date
+                "start_date": start_date
             }
             json_list.append(value)
         
@@ -376,7 +376,7 @@ def purchase_history():
             Subscription_plan,Subscription_plan.plan_id == Plan_price.tbl_plan_id
         ).with_entities(
             Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city, 
-            Location.state, Purchase_hist.price, Purchase_hist.start_date, Purchase_hist.end_date
+            Location.state, Purchase_hist.price,Purchase_hist.purchase_date, Purchase_hist.start_date, Purchase_hist.end_date
         ).filter(Purchase_hist.tbl_customer_id == g.token).all()
     
     if bool(info):
@@ -389,8 +389,9 @@ def purchase_history():
             elif info[i][0] == 4:
                 plan_type = "Quad"
             
-            start_date = info[i][7].strftime("%Y-%m-%d")
-            end_date = info[i][8].strftime("%Y-%m-%d")
+            purchase_date = info[i][7].strftime("%Y-%m-%d")
+            start_date = info[i][8].strftime("%Y-%m-%d")
+            end_date = info[i][9].strftime("%Y-%m-%d")
 
             if start_date<=today and end_date>=today:
                 plan_status = "Active"
@@ -408,6 +409,7 @@ def purchase_history():
                 "city": info[i][4],
                 "state": info[i][5],
                 "price": info[i][6],
+                "purchase_date": purchase_date,
                 "start_date": start_date,
                 "expiry_date": end_date
             }
