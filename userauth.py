@@ -44,10 +44,9 @@ def admin_auth(f):
         user_id = request.cookies.get('auth_id')
         token = "token-123"
         log_exist = bool(db.session.query(Adminlog).filter_by(login_token=user_token).first())
-        # datetime.datetime.now()#datetime.datetime.strptime(str(user_detail['expiry_date']), '%yyyy-%mm-%dd %HH:%MM:%SS')
-        # print(datetime.datetime.now())
-        # print(date>datetime.datetime.now())
-        # id = hashlib.sha512(("user"+user_detail['customer_id']).encode()).hexdigest()
+        # datetime.datetime.now()#datetime.datetime.strptime(str(user_detail['expiry_date']), '%yyyy-%mm-%dd
+        # %HH:%MM:%SS') print(datetime.datetime.now()) print(date>datetime.datetime.now()) id = hashlib.sha512((
+        # "user"+user_detail['customer_id']).encode()).hexdigest()
         if log_exist:
             user_detail = db.session.query(Adminlog.admin_email, Adminlog.expiry_date).filter_by(
                 login_token=user_token).first()

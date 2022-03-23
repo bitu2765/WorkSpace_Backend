@@ -46,13 +46,13 @@ def users_details():
     users = Customer.query.all()
     user_list = []
     for user in users:
-        user = {
+        _user = {
             "name": user.name,
             "email": user.email,
             "email_verified": user.email_verify,
             "is_block": user.block_user
         }
-        user_list.append(user)
+        user_list.append(_user)
     resp = make_response({
         "status_code": "200",
         "customers": user_list
