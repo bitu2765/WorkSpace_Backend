@@ -46,16 +46,13 @@ def temp_user_registration():
 
             regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
             if re.match(regex, email):
-                print('valid email')
                 email_valid = True
             # mobile no. validation
             if len(str(mobile_no)) == 10:
-                print('valid mobile no')
                 mobile_valid = True
 
             # password validation
             if 8 <= len(password) <= 32:
-                print('valid password')
                 password_valid = True
 
             if not password_valid:
@@ -69,7 +66,7 @@ def temp_user_registration():
                 exist = bool(db.session.query(Customer).filter_by(email=email,
                                                                   mobile_no=mobile_no,
                                                                   customer_id=customer_id).first())
-                if exist:
+                if bool(exist):
                     return {"message": "Email already exists or mobile no "
                                        "is already exist or username already taken", "status_code": 404}
                 else:
