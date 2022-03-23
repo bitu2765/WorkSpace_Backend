@@ -62,13 +62,16 @@ def temp_user_registration():
             elif not mobile_valid:
                 return {"message": "mobile number is not valid.", "status_code": 404}
             else:
-                # print(name, email, mobile_no, password, sender_uuid)
-                exist = bool(db.session.query(Customer).filter_by(email=email,
-                                                                  mobile_no=mobile_no,
-                                                                  customer_id=customer_id).first())
-                if bool(exist):
-                    return {"message": "Email already exists or mobile no "
-                                       "is already exist or username already taken", "status_code": 404}
+                exist_customer_id = bool(db.session.query(Customer).filter_by(customer_id=customer_id).all())
+                exist_email = bool(db.session.query(Customer).filter_by(email=email).all())
+                exist_mobile = bool(db.session.query(Customer).filter_by(mobile_no=mobile_no).all())
+
+                if exist_customer_id:
+                    return {"message": "user id already taken", "status_code": 404}
+                elif exist_email:
+                    return {"message": "email already taken. please try another email id.", "status_code": 404}
+                elif exist_mobile:
+                    return {"message": "mobile number already taken. please try another mobile number.", "status_code": 404}
                 else:
                     user_data = Customer(sender_uuid=sender_uuid,
                                          customer_id=customer_id,

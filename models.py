@@ -1,4 +1,4 @@
-from datetime import datetime,timedelta
+from datetime import datetime, timedelta
 from app import db
 
 
@@ -56,7 +56,7 @@ class Subscription_plan(db.Model):
     capacity = db.Column(db.Integer)
     duration = db.Column(db.Integer)
     discount = db.Column(db.Float)
-    __table_args__ = (db.UniqueConstraint('capacity','duration',name='capacity_duration_uc'),)
+    __table_args__ = (db.UniqueConstraint('capacity', 'duration', name='capacity_duration_uc'),)
 
 
 # plan price table
@@ -86,26 +86,27 @@ class Purchase_hist(db.Model):
 # db.create_all()
 
 
-
 class Userlog(db.Model):
     __tablename__ = 'tbl_user_log'
-    login_token = db.Column(db.String(150),primary_key=True, unique=True,nullable=False)
-    customer_id = db.Column(db.String(50), db.ForeignKey('tbl_customer.customer_id'),nullable=False)
+    login_token = db.Column(db.String(150), primary_key=True, unique=True, nullable=False)
+    customer_id = db.Column(db.String(50), db.ForeignKey('tbl_customer.customer_id'), nullable=False)
     expiry_date = db.Column(db.DateTime)
-    def __init__(self, login_token,customer_id):
+
+    def __init__(self, login_token, customer_id):
         self.login_token = login_token
         self.customer_id = customer_id
         self.expiry_date = datetime.now() + timedelta(days=31)
 
+
 class Adminlog(db.Model):
     __tablename__ = 'tbl_admin_log'
-    login_token = db.Column(db.String(150),primary_key=True, unique=True,nullable=False)
-    admin_email = db.Column(db.String(255), db.ForeignKey('tbl_admin.admin_email'),nullable=False)
+    login_token = db.Column(db.String(150), primary_key=True, unique=True, nullable=False)
+    admin_email = db.Column(db.String(255), db.ForeignKey('tbl_admin.admin_email'), nullable=False)
     expiry_date = db.Column(db.DateTime)
-    def __init__(self, login_token,admin_email):
+
+    def __init__(self, login_token, admin_email):
         self.login_token = login_token
-        self.admin_email = admin_email  
-        self.expiry_date = datetime.now() + timedelta(days=31)  
+        self.admin_email = admin_email
+        self.expiry_date = datetime.now() + timedelta(days=31)
 
-
-# db.create_all()
+    # db.create_all()
