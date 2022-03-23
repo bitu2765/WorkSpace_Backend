@@ -1,6 +1,6 @@
 from flask import Blueprint,make_response,render_template,request
 from app import db
-from models import Admin, Location
+from models import Admin, Location, Purchase_hist,Customer
 admin = Blueprint('admin',__name__)
 
 @admin.route('/admin/profile', methods=['GET'])
@@ -15,3 +15,5 @@ def admin_profile():
             "state": info[4]
         }
     }
+    
+  
