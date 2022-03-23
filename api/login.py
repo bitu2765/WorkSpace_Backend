@@ -110,6 +110,6 @@ def verify_user():
 @log.route('/admin/verify', methods=['GET'])
 @admin_auth
 def admin_verify():
-    return {
-        "status_code":200
-    }
+    resp = make_response({"status_code":200})
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp

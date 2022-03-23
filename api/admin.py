@@ -18,7 +18,7 @@ def admin_profile():
     
     if bool(info):
         resp = make_response({
-            "status": 200,
+            "status_code": 200,
             "admin": {
                 "email": info[0],
                 "name": info[1],
@@ -54,7 +54,8 @@ def users_details():
         }
         user_list.append(_user)
     resp = make_response({
-        "status_code": "200",
+        "status_code": 200,
         "customers": user_list
     })
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
