@@ -10,6 +10,7 @@ import json
 import math
 from dateutil import parser
 from userauth import user_auth
+import re
 
 user = Blueprint('user', __name__)
 
@@ -97,7 +98,6 @@ def temp_user_registration():
                             "status_code": 200}
         else:
             return {"message": "Content-Type not supported!"}
-
 
 
 @user.route('/verify_user', methods=['GET'])
