@@ -1,4 +1,3 @@
-import json
 from flask import Blueprint,make_response,render_template,request, g
 from app import db
 from models import Admin, Customer, Location, Subscription_plan, Plan_price, Purchase_hist
@@ -27,13 +26,51 @@ def admin_profile():
                 "state": info[4]
             }
         })
+        
+        
+        
+@admin.route('/admin/user_purchase_plan_details',methods = ["GET"])
+def user_details():
+    
+    userInfo = db.session.query(Customer,Purchase_hist).filter(Customer.customer_id == Purchase_hist.tbl_customer_id).all()
+    
+    if bool(userInfo):
+        
+        records = []
+        name = desk_no = price = purchase_date = start_date = end_date = None
+
+        for c,p in db.session.query(Customer,Purchase_hist).filter(Customer.customer_id == Purchase_hist.tbl_customer_id).all():
+            name = c.name
+            desk_no = p.desk_no
+            price = p.price
+            purchase_date = p.purchase_date
+            start_date = p.start_date
+            end_date = p.end_date
+            
+            obj = {
+                'Name' : name,
+                'Desk no.' : desk_no,
+                'Plan price' : price,
+                'Purchase date' : purchase_date,
+                'Start date' : start_date,
+                'End date' : end_date
+            }
+            
+            records.append(obj)
+            
+        resp = make_response(
+            {
+                "status_code":200,
+                "user_purchsed_plans_details":records
+            }
+        )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
     else:
         resp = make_response(
             {
                 "status_code": 404,
-                "message": "Admin doesn't exist."
+                "message": "No one have purchase any plan"
             }
         )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
