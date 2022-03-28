@@ -1,4 +1,5 @@
 import json
+from turtle import end_fill, pu
 from flask import Blueprint, make_response, render_template, request, g
 from app import db
 from models import Admin, Customer, Location, Subscription_plan, Plan_price, Purchase_hist
@@ -111,3 +112,41 @@ def user_details():
         )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
+
+# Changes Required this is not uptodate 
+def block_user():
+    list_unblock_user = Customer.query.with_entities(Customer.customer_id).filter_by(block_user=0).all()
+    today = date.today()
+    if bool(list_unblock_user):
+        list_user = []
+        for i in range(0,len(list_unblock_user)):
+            list_user.append(list_unblock_user[i][0])
+        
+        for i in range(0, len(list_user)):
+            purchase_history = Purchase_hist.query.with_entities(
+                    Purchase_hist.purchase_date, Purchase_hist.start_date, Purchase_hist.end_date
+                ).filter(
+                    Purchase_hist.tbl_customer_id == list_user[i]
+                ).all()
+            
+
+            if bool(purchase_history):
+                limit_email = []
+                limit_block = []
+                for i in range(0, len(purchase_history)):
+                    purchase_date = today - purchase_history[i][0]
+                    start_date = today - purchase_history[i][1]
+                    end_date = today - purchase_history[i][2]
+
+                    if (int(purchase_date.days)>25 and int(purchase_date.days)<30) or (int(start_date.days)>25 and int(start_date.days)<30) or (int(end_date.days)>25 and int(end_date.days)<30):
+                        limit_email.append(1)
+                    if (int(purchase_date.days)>=30 or int(start_date.days)>=30 or int(end_date.days)>=30):
+                        limit_block.append(1)
+
+                if(len(limit_email)>0):
+                    print("Compose Mail")
+                if(len(limit_block)>0):
+                    block = Customer.query.filter(Customer.customer_id == 'vraj12').first()
+                    block.block_user = 1
+                    db.session.commit()        
+            

@@ -164,7 +164,7 @@ def active_plan():
         and_(
             Purchase_hist.start_date <= today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == g.token
         )
-    ).all()
+    ).order_by(Purchase_hist.end_date).all()
 
     if bool(info):
         json_list = []
@@ -222,7 +222,7 @@ def upcoming_plan():
         and_(
             Purchase_hist.start_date > today, Purchase_hist.end_date >= today, Purchase_hist.tbl_customer_id == g.token
         )
-    ).all()
+    ).order_by(Purchase_hist.start_date).all()
 
     if bool(info):
         json_list = []
@@ -415,7 +415,7 @@ def purchase_history():
         Subscription_plan.capacity, Subscription_plan.duration, Purchase_hist.desk_no, Location.address, Location.city,
         Location.state, Purchase_hist.price, Purchase_hist.purchase_date, Purchase_hist.start_date,
         Purchase_hist.end_date
-    ).filter(Purchase_hist.tbl_customer_id == g.token).all()
+    ).order_by(Purchase_hist.purchase_date.desc()).filter(Purchase_hist.tbl_customer_id == g.token).all()
 
     if bool(info):
         json_list = []
