@@ -32,9 +32,11 @@ def plans():
         subscription_plan_list.append(_plan)
 
     resp = make_response({
-        "status_code": "200",
+        "status_code": 200,
         "plans": subscription_plan_list
     })
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+
     return resp
 
     # plansInfo = db.session.query(Plan_price, Subscription_plan).filter(
