@@ -1,8 +1,6 @@
-import json
-from turtle import end_fill, pu
 from flask import Blueprint, make_response, render_template, request, g
 from app import db
-from models import Admin, Customer, Location, Subscription_plan, Plan_price, Purchase_hist
+from models import Admin, Customer, Location, Purchase_hist
 from userauth import admin_auth
 from datetime import date
 
@@ -44,11 +42,15 @@ def admin_profile():
 
 # all users details for admin side to show list of users
 @admin.route('/admin/user_details', methods=['GET'])
-@admin_auth
+# @admin_auth
 def users_details():
-    users = Customer.query.all()
+    page = request.args.get('page', 1, type = int)
+    per_page = request.args.get('per_page', 1, type = int)
+
+    users = Customer.query.paginate(page=page, per_page=per_page, error_out=False)
     user_list = []
-    for user in users:
+
+    for user in users.items:
         _user = {
             "name": user.name,
             "email": user.email,
@@ -56,8 +58,20 @@ def users_details():
             "is_block": user.block_user
         }
         user_list.append(_user)
+    
+    meta = {
+        "page": users.page,
+        "pages": users.pages,
+        "total_count": users.total,
+        "prev_page": users.prev_num,
+        "next_page": users.next_num,
+        "has_next": users.has_next,
+        "has_prev": users.has_prev,
+    }
+
     resp = make_response({
         "status_code": "200",
+        "paginate": meta,
         "customers": user_list
     })
     return resp
