@@ -103,7 +103,7 @@ def user_details():
                 'Desk no.' : desk_no,
                 'Plan price' : price,
                 'Purchase date' : purchase_date,
-                'Stargitt date' : start_date,
+                'Start date' : start_date,
                 'End date' : end_date
             }
             
