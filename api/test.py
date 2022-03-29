@@ -1,5 +1,5 @@
 from flask import Blueprint,make_response,render_template,request,g
-from userauth import user_auth
+from userauth import user_auth,admin_auth
 import uuid
 import hashlib
 from app import db,mail
