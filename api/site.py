@@ -1,4 +1,5 @@
 from flask import Blueprint, make_response, render_template, request
+import routes
 
 from app import db, mail
 from models import Subscription_plan, Plan_price, Location
@@ -104,8 +105,7 @@ def plans_for_location(location_id):
 
         records = []
 
-        for p, s in db.session.query(Plan_price, Subscription_plan).filter(Plan_price.tbl_location_id == location_id,
-                                                                           Plan_price.tbl_plan_id == Subscription_plan.plan_id).all():
+        for p, s in plansInfo:
             # print ("plan price Id: {} location Id: {} plan Id No: {} price: {}".format(p.plan_price_id,p.tbl_location_id, p.tbl_plan_id, p.price))               
             discount = str(s.discount)
             planPrice = str(p.price)
@@ -140,3 +140,51 @@ def plans_for_location(location_id):
         )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
+
+
+#retrive all locations
+
+@site.route('/locations',methods = ['GET'])
+def locations():
+    query = db.session.query(Location).all()
+    record = []
+    if bool(query):
+        for l in query:
+            city = l.city
+            state = l.state
+            
+            obj = {
+                'city' : city,
+                'state' : state
+            }
+            
+            record.append(obj)
+    
+        resp = make_response(
+            {
+                "status_code": 200,
+                "Locations": record
+            }
+        )
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
+    
+    else:
+        resp = make_response(
+            {
+                "status_code": 404,
+                "message": "Their is No location available currently."
+            }
+        )
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
+
+
+
+
+
+
+
+
+
+
