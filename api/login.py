@@ -73,7 +73,6 @@ def login_fun():
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
                 logger.info('User logged in with customer_id : {0}'.format(user))
-
                 return resp
             else:
                 exist = bool(db.session.query(Customer).filter_by(customer_id=user, password=passwrd,
@@ -123,6 +122,8 @@ def login_fun():
         return jsonify(response)
     else:
         return jsonify({"Msg": "Content-Type not supported!"})
+
+# print("hello")
 
 
 @log.route('/user/verify', methods=['GET'])
