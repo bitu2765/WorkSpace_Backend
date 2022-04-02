@@ -1,13 +1,15 @@
-from flask import Blueprint,make_response,render_template,request,g
-from userauth import user_auth,admin_auth
+from flask import Blueprint, make_response, render_template, request, g
+from userauth import user_auth, admin_auth
 import uuid
 import hashlib
-from app import db,mail
+from app import db, mail
 
 from flask_mail import Mail, Message
 # from flaskr import var
 from models import Customer
-test = Blueprint('test',__name__)
+
+test = Blueprint('test', __name__)
+
 
 @test.route('/test')
 def testing():
@@ -18,4 +20,3 @@ def testing():
 @user_auth
 def testing2():
     return f'Authenticated user is {g.token} . '
-

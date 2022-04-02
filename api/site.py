@@ -1,16 +1,23 @@
 from flask import Blueprint, make_response, render_template, request
 import routes
-
+import logging
 from app import db, mail
 from models import Subscription_plan, Plan_price, Location
 
 site = Blueprint('site', __name__)
 
+# logger setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+file_handler = logging.FileHandler('logs/plan_details.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 # sub = Blueprint('subscription',__name__)
 
 # api to get all plans details
-
 @site.route('/plans', methods=['GET'])
 def plans():
     subscription_plans = Subscription_plan.query.all()
@@ -37,61 +44,12 @@ def plans():
         "plans": subscription_plan_list
     })
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
-
+    # log
+    logger.info('Api called to get all plans details')
     return resp
-
-    # plansInfo = db.session.query(Plan_price, Subscription_plan).filter(
-    #     Plan_price.tbl_plan_id == Subscription_plan.plan_id).all()
-    # if bool(plansInfo):
-    #
-    #     discount = planPrice = validity = planType = None
-    #     # print ("plan price Id: {} location Id: {} plan Id No: {} price: {}".format(p.plan_price_id,p.tbl_location_id, p.tbl_plan_id, p.price))
-    #
-    #     records = []
-    #
-    #     for p, s in db.session.query(Plan_price, Subscription_plan).filter(Plan_price.tbl_plan_id == Subscription_plan.plan_id).all():
-    #         # print ("plan price Id: {} location Id: {} plan Id No: {} price: {}".format(p.plan_price_id,p.tbl_location_id, p.tbl_plan_id, p.price))
-    #         discount = str(s.discount)
-    #         planPrice = str(p.price)
-    #         validity = str(s.duration)
-    #         planType = "Solo" if (s.capacity == 1) else "Duo" if (s.capacity == 2) else "Squade"
-    #
-    #         obj = {
-    #             'plan_type': planType,
-    #             'validity': validity,
-    #             'plan_price': planPrice,
-    #             'discount': discount
-    #         }
-    #
-    #         records.append(obj)
-    #         # print(planType," ",planPrice," ",validity," ",dis," ",location,"\n")
-    #
-    #     # records = json.dumps(records)
-    #     # return (records)
-    #     resp = make_response(
-    #         {
-    #             "status_code": 200,
-    #             "plans": records
-    #         }
-    #     )
-    #     resp.headers['Access-Control-Allow-Credentials'] = 'true'
-    #     return resp
-    # else:
-    #     resp = make_response(
-    #         {
-    #             "status_code": 404,
-    #             "message": "Their is No any Plans exist Currently."
-    #         }
-    #     )
-    #     resp.headers['Access-Control-Allow-Credentials'] = 'true'
-    #     return resp
-
-
-# return "Subscription Api"
 
 
 # api to get plans for specific location with location_id
-
 @site.route("/plans/<location_id>", methods=['GET'])
 def plans_for_location(location_id):
     # location_plans = db.session.query(Plan_price).filter(Plan_price.tbl_location_id == location_id).all()
@@ -101,12 +59,9 @@ def plans_for_location(location_id):
     if bool(plansInfo):
 
         discount = planPrice = validity = planType = None
-        # print ("plan price Id: {} location Id: {} plan Id No: {} price: {}".format(p.plan_price_id,p.tbl_location_id, p.tbl_plan_id, p.price))            
-
         records = []
 
         for p, s in plansInfo:
-            # print ("plan price Id: {} location Id: {} plan Id No: {} price: {}".format(p.plan_price_id,p.tbl_location_id, p.tbl_plan_id, p.price))               
             discount = str(s.discount)
             planPrice = str(p.price)
             validity = str(s.duration)
@@ -129,6 +84,8 @@ def plans_for_location(location_id):
                 "Location_plans": records
             }
         )
+        # log
+        logger.info('Api called to get plan for location - {0}'.format(location_id))
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
     else:
@@ -142,9 +99,8 @@ def plans_for_location(location_id):
         return resp
 
 
-#retrive all locations
-
-@site.route('/locations',methods = ['GET'])
+# retrieve all locations
+@site.route('/locations', methods=['GET'])
 def locations():
     query = db.session.query(Location).all()
     record = []
@@ -152,23 +108,25 @@ def locations():
         for l in query:
             city = l.city
             state = l.state
-            
+
             obj = {
-                'city' : city,
-                'state' : state
+                'city': city,
+                'state': state
             }
-            
+
             record.append(obj)
-    
+
         resp = make_response(
             {
                 "status_code": 200,
                 "Locations": record
             }
         )
+        # log
+        logger.info('Api called to get all available locations')
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
-    
+
     else:
         resp = make_response(
             {
@@ -178,13 +136,3 @@ def locations():
         )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
-
-
-
-
-
-
-
-
-
-

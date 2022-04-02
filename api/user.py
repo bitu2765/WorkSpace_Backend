@@ -11,8 +11,17 @@ import math
 from dateutil import parser
 from userauth import user_auth
 import re
+import logging
 
 user = Blueprint('user', __name__)
+
+# logger setup
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(message)s')
+file_handler = logging.FileHandler('logs/user_registration.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 
 @user.route('/send_mail', methods=['GET'])
@@ -71,7 +80,8 @@ def temp_user_registration():
                 elif exist_email:
                     return {"message": "email already taken. please try another email id.", "status_code": 404}
                 elif exist_mobile:
-                    return {"message": "mobile number already taken. please try another mobile number.", "status_code": 404}
+                    return {"message": "mobile number already taken. please try another mobile number.",
+                            "status_code": 404}
                 else:
                     user_data = Customer(sender_uuid=sender_uuid,
                                          customer_id=customer_id,
@@ -81,6 +91,8 @@ def temp_user_registration():
                                          password=password)
                     db.session.add(user_data)
                     db.session.commit()
+                    # log
+                    logger.info('New User created with username : {0}'.format(customer_id))
                     # mail code
                     msg = Message(
                         'Hello, From ',
@@ -92,7 +104,8 @@ def temp_user_registration():
                     print(verify_url)
                     msg.body = 'Hello User, please verify your self by clicking on this link \nLink : ' + verify_url
                     mail.send(msg)
-
+                    # log
+                    logger.info('Mail is send to user : {0} with link as : {1}'.format(customer_id, verify_url))
                     return {"message": "User Successfully registered. "
                                        "please verify your self link is send to your registered mail id.",
                             "status_code": 200}
@@ -112,6 +125,8 @@ def verify_user():
         else:
             user_detail.email_verify = True
             db.session.commit()
+            # log
+            logger.info('User verified with token {0}'.format(tkn))
             return {"message": "User with this token exists and verified", "status_code": 200}
     else:
         return {"message": "User with this token not exists. please register your self priorly", "status_code": 403}
