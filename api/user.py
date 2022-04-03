@@ -388,9 +388,13 @@ def purchase_plan():
     end_date = start_date + timedelta(days=price_discount_duration[2])
     end_date = end_date.strftime("%Y-%m-%d")
 
+    get_plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(
+        and_(Plan_price.tbl_location_id == location_id, Plan_price.tbl_plan_id == plan_id)
+        ).first()
+            
     purchase_history = Purchase_hist(
         tbl_customer_id=g.token,
-        tbl_plan_price_id=plan_id,
+        tbl_plan_price_id=get_plan_price_id[0],
         desk_no=desk_no,
         price=price,
         purchase_date=purchase_date,
