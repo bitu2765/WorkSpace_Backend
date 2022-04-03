@@ -16,18 +16,29 @@ formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(name)s : %(messag
 
 @log.route('/logout', methods=['POST', 'GET'])
 def logout_fun():
-    user_token = request.cookies.get('auth_token')
-    Userlog.query.filter_by(login_token=user_token).delete()
-    Adminlog.query.filter_by(login_token=user_token).delete()
+    user_token = request.headers['auth_token']
+    user_id = request.headers['auth_id']
+
+    log_exist = bool(db.session.query(Adminlog).filter_by(login_token=user_token).first())
+    if log_exist:
+        Adminlog.query.filter_by(login_token = user_token).delete()
+    log_exist = bool(db.session.query(Userlog).filter_by(login_token=user_token).first())
+    if log_exist:
+        Userlog.query.filter_by(login_token = user_token).delete()
+
+
+    # user_token = request.cookies.get('auth_token')
+    # Userlog.query.filter_by(login_token = user_token).delete()
+    # Adminlog.query.filter_by(login_token = user_token).delete()
     db.session.commit()
     resp = make_response(
         {
             "Msg": "Logout Successfully",
             "status_code": 200
         }
-    )
-    resp.set_cookie("auth_id", '', expires=0)
-    resp.set_cookie("auth_token", '', expires=0)
+        )
+    # resp.set_cookie("auth_id",'',expires=0)
+    # resp.set_cookie("auth_token",'',expires=0)
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
 
@@ -129,8 +140,8 @@ def login_fun():
 @log.route('/user/verify', methods=['GET'])
 @user_auth
 def verify_user():
-    resp = make_response({"status_code": 200})
-    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    resp = make_response({"status_code":200})
+    # resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
 
 
@@ -138,5 +149,5 @@ def verify_user():
 @admin_auth
 def admin_verify():
     resp = make_response({"status_code": 200})
-    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    # resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp

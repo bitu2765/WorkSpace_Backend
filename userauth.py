@@ -9,9 +9,15 @@ from app import db
 def user_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_token = request.cookies.get('auth_token')
-        user_id = request.cookies.get('auth_id')
-        token = "token-123"
+        # resp = make_response({"status_code": 404})
+        # resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        # return resp
+        # print(request.headers['auth_token'])
+        # user_token = request.cookies.get('auth_token')
+        # user_id = request.cookies.get('auth_id')
+        user_token = request.headers['auth_token']
+        user_id = request.headers['auth_id']
+        # token = "token-123"
         log_exist = bool(db.session.query(Userlog).filter_by(login_token=user_token).first())
         # datetime.datetime.now()#datetime.datetime.strptime(str(user_detail['expiry_date']), '%yyyy-%mm-%dd %HH:%MM:%SS')
         # print(log_exist)
@@ -40,9 +46,11 @@ def user_auth(f):
 def admin_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_token = request.cookies.get('auth_token')
-        user_id = request.cookies.get('auth_id')
-        token = "token-123"
+        # user_token = request.cookies.get('auth_token')
+        # user_id = request.cookies.get('auth_id')
+        user_token = request.headers['auth_token']
+        user_id = request.headers['auth_id']
+        # token = "token-123"
         log_exist = bool(db.session.query(Adminlog).filter_by(login_token=user_token).first())
         # datetime.datetime.now()#datetime.datetime.strptime(str(user_detail['expiry_date']), '%yyyy-%mm-%dd
         # %HH:%MM:%SS') print(datetime.datetime.now()) print(date>datetime.datetime.now()) id = hashlib.sha512((

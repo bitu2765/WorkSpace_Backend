@@ -280,139 +280,140 @@ def upcoming_plan():
 @user.route("/user/purchase_plan", methods=['POST'])
 @user_auth
 def purchase_plan():
+    # print(1)
     errors = []
     is_error = False
 
-    if request.method == 'POST':
-        content_type = request.headers.get('Content-Type')
-        if content_type == 'application/json':
-            data = request.json
-            plan_id = data['plan_id']
-            location_id = data['location_id']
-            start_date = data['start_date']
+    # if request.method == 'POST':
+    #     content_type = request.headers.get('Content-Type')
+    #     if content_type == 'application/json':
+    data = request.json
+    plan_id = data['plan_id']
+    location_id = data['location_id']
+    start_date = data['start_date']
 
-            start_date = parser.parse(start_date)
-            if start_date.strftime("%Y-%m-%d") < date.today().strftime("%Y-%m-%d"):
-                resp1 = make_response({
-                    "status_code": 422,
-                    "message": "Plan Starting Date must be on or after " + date.today().strftime("%Y-%m-%d") + "."
-                })
-                resp1.headers['Access-Control-Allow-Credentials'] = 'true'
-                return resp1
+    start_date = parser.parse(start_date)
+    if start_date.strftime("%Y-%m-%d") < date.today().strftime("%Y-%m-%d"):
+        resp1 = make_response({
+            "status_code": 422,
+            "message": "Plan Starting Date must be on or after " + date.today().strftime("%Y-%m-%d") + "."
+        })
+        resp1.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp1
 
-            valid_plan_id = Subscription_plan.query.filter_by(plan_id=plan_id).all()
-            if not (bool(valid_plan_id)):
-                is_error = True
-                errors.append("Plan id doesn't exist.")
+    valid_plan_id = Subscription_plan.query.filter_by(plan_id=plan_id).all()
+    if not (bool(valid_plan_id)):
+        is_error = True
+        errors.append("Plan id doesn't exist.")
 
-            valid_user_id = Customer.query.filter_by(customer_id=g.token).all()
-            if not (bool(valid_user_id)):
-                is_error = True
-                errors.append("User id doesn't exist.")
+    valid_user_id = Customer.query.filter_by(customer_id=g.token).all()
+    if not (bool(valid_user_id)):
+        is_error = True
+        errors.append("User id doesn't exist.")
 
-            valid_location_id = Location.query.filter_by(location_id=location_id).all()
-            if not (bool(valid_location_id)):
-                is_error = True
-                errors.append("Location id doesn't exist.")
+    valid_location_id = Location.query.filter_by(location_id=location_id).all()
+    if not (bool(valid_location_id)):
+        is_error = True
+        errors.append("Location id doesn't exist.")
 
-            if is_error:
-                resp2 = make_response({
-                    "status_code": 404,
-                    "errors": errors
-                })
-                resp2.headers['Access-Control-Allow-Credentials'] = 'true'
-                return resp2
+    if is_error:
+        resp2 = make_response({
+            "status_code": 404,
+            "errors": errors
+        })
+        resp2.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp2
+    plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(
+        Plan_price.tbl_location_id == location_id).all()
 
-            plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(
-                Plan_price.tbl_location_id == location_id).all()
-
-            alloted_desk_no = []
-            for i in range(0, len(plan_price_id)):
-                deskno = Purchase_hist.query.with_entities(Purchase_hist.desk_no).filter(
-                    Purchase_hist.tbl_plan_price_id == plan_price_id[i][0]).all()
-                if bool(deskno):
-                    for j in range(0, len(deskno)):
-                        alloted_desk_no.append(list(map(int, deskno[j][0].split(','))))
-                else:
-                    continue
-
-            final_alloted_desk_no = []
-            for i in range(0, len(alloted_desk_no)):
-                for j in range(0, len(alloted_desk_no[i])):
-                    final_alloted_desk_no.append(alloted_desk_no[i][j])
-
-            capacity = Location.query.with_entities(Location.capacity).filter(
-                Location.location_id == location_id).first()
-            desk_slots = {}
-            for i in range(1, capacity[0] + 1):
-                desk_slots[i] = True
-
-            for i in range(0, len(final_alloted_desk_no)):
-                desk_slots[final_alloted_desk_no[i]] = False
-
-            avail_slots = []
-            for key, val in desk_slots.items():
-                if val == True:
-                    avail_slots.append(key)
-            required_desk_slots = Subscription_plan.query.with_entities(Subscription_plan.capacity).filter(
-                Subscription_plan.plan_id == plan_id).first()
-
-            if required_desk_slots[0] > len(avail_slots):
-                resp3 = make_response({
-                    "status_code": 404,
-                    "message": "No more Available Desks. Hoping for serving you better Next Time."
-                })
-                resp3.headers['Access-Control-Allow-Credentials'] = 'true'
-                return resp3
-
-            allotment = []
-            for i in range(0, required_desk_slots[0]):
-                allotment.append(avail_slots[i])
-                desk_slots[allotment[i]] = False
-
-            desk_no = ''
-            for i in range(len(allotment)):
-                desk_no = desk_no + ',' + str(allotment[i])
-            desk_no = desk_no[1:]
-
-            price_discount_duration = Subscription_plan.query.join(
-                Plan_price, Subscription_plan.plan_id == Plan_price.tbl_plan_id
-            ).with_entities(
-                Plan_price.price, Subscription_plan.discount, Subscription_plan.duration
-            ).filter(Subscription_plan.plan_id == plan_id).first()
-            price = price_discount_duration[0] - ((price_discount_duration[0] * price_discount_duration[1]) / 100)
-            price = int(math.ceil(price))
-
-            purchase_date = date.today().strftime("%Y-%m-%d")
-
-            end_date = start_date + timedelta(days=price_discount_duration[2])
-            end_date = end_date.strftime("%Y-%m-%d")
-
-            purchase_history = Purchase_hist(
-                tbl_customer_id=g.token,
-                tbl_plan_price_id=plan_id,
-                desk_no=desk_no,
-                price=price,
-                purchase_date=purchase_date,
-                start_date=start_date,
-                end_date=end_date
-            )
-            db.session.add(purchase_history)
-            db.session.commit()
-
-            resp = make_response({
-                "status_code": 200,
-                "message": "Plan purchased Successfully."
-            })
-            resp.headers['Access-Control-Allow-Credentials'] = 'true'
-            return resp
+    alloted_desk_no = []
+    for i in range(0, len(plan_price_id)):
+        deskno = Purchase_hist.query.with_entities(Purchase_hist.desk_no).filter(
+            and_(Purchase_hist.tbl_plan_price_id == plan_price_id[i][0], Purchase_hist.end_date>start_date)).all()
+        if bool(deskno):
+            for j in range(0, len(deskno)):
+                alloted_desk_no.append(list(map(int, deskno[j][0].split(','))))
         else:
-            resp = make_response({
-                "status_code": 415,
-                "message": "Content-Type not supported!"
-            })
-            resp.headers['Access-Control-Allow-Credentials'] = 'true'
-            return resp
+            continue
+
+    final_alloted_desk_no = []
+    for i in range(0, len(alloted_desk_no)):
+        for j in range(0, len(alloted_desk_no[i])):
+            final_alloted_desk_no.append(alloted_desk_no[i][j])
+
+    capacity = Location.query.with_entities(Location.capacity).filter(
+        Location.location_id == location_id).first()
+    desk_slots = {}
+    for i in range(1, capacity[0] + 1):
+        desk_slots[i] = True
+
+    for i in range(0, len(final_alloted_desk_no)):
+        desk_slots[final_alloted_desk_no[i]] = False
+
+    avail_slots = []
+    for key, val in desk_slots.items():
+        if val == True:
+            avail_slots.append(key)
+    required_desk_slots = Subscription_plan.query.with_entities(Subscription_plan.capacity).filter(
+        Subscription_plan.plan_id == plan_id).first()
+
+    if required_desk_slots[0] > len(avail_slots):
+        resp3 = make_response({
+            "status_code": 404,
+            "message": "No more Available Desks. Hoping for serving you better Next Time."
+        })
+        resp3.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp3
+
+    allotment = []
+    for i in range(0, required_desk_slots[0]):
+        allotment.append(avail_slots[i])
+        desk_slots[allotment[i]] = False
+
+    desk_no = ''
+    for i in range(len(allotment)):
+        desk_no = desk_no + ',' + str(allotment[i])
+    desk_no = desk_no[1:]
+
+    price_discount_duration = Subscription_plan.query.join(
+        Plan_price, Subscription_plan.plan_id == Plan_price.tbl_plan_id
+    ).with_entities(
+        Plan_price.price, Subscription_plan.discount, Subscription_plan.duration
+    ).filter(Subscription_plan.plan_id == plan_id).first()
+    price = price_discount_duration[0] - ((price_discount_duration[0] * price_discount_duration[1]) / 100)
+    price = int(math.ceil(price))
+
+    purchase_date = date.today().strftime("%Y-%m-%d")
+
+    end_date = start_date + timedelta(days=price_discount_duration[2])
+    end_date = end_date.strftime("%Y-%m-%d")
+
+    purchase_history = Purchase_hist(
+        tbl_customer_id=g.token,
+        tbl_plan_price_id=plan_id,
+        desk_no=desk_no,
+        price=price,
+        purchase_date=purchase_date,
+        start_date=start_date,
+        end_date=end_date
+    )
+    db.session.add(purchase_history)
+    db.session.commit()
+
+    resp = make_response({
+        "status_code": 200,
+        "message": "Plan purchased Successfully."
+    })
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp
+        # else:
+        #     resp = make_response({
+        #         "status_code": 415,
+        #         "message": "Content-Type not supported!"
+        #     })
+        #     resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        #     return resp
+
 
 
 @user.route("/user/purchase_history", methods=['GET'])
@@ -482,3 +483,42 @@ def purchase_history():
         })
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
+
+
+@user.route('/user/desk_details',methods = ["GET"])
+@user_auth
+def user_desk_details():
+    # data = request.args
+    # print(data)
+    search_date = request.args.get("date")
+    location_id = request.args.get('location')
+    location = db.session.query(Location).with_entities(
+            Location.capacity
+                ).filter(
+                    Location.location_id == location_id
+                ).first()
+
+    desk_details = db.session.query(Plan_price,Purchase_hist).with_entities(
+        Purchase_hist.desk_no
+                ).filter(
+                    Plan_price.tbl_location_id == location_id,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date
+                ).all()
+    # print(search_date)
+
+    desk_detail_list = [ 0 for i in range(location['capacity']) ]
+
+    for i in desk_details:
+        for j in i['desk_no'].split(","):
+            # print(j)
+            desk_detail_list[int(j)-1]=1
+
+    resp = make_response(
+            {
+                "status_code": 200,
+                "desks":desk_detail_list,
+                # "date":date,
+                "message": "No one have purchase any plan"
+            }
+        )
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp

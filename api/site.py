@@ -108,10 +108,14 @@ def locations():
         for l in query:
             city = l.city
             state = l.state
-
+            id = l.location_id
+            add =l.address
+            
             obj = {
-                'city': city,
-                'state': state
+                'id' : id,
+                'add' : add,
+                'city' : city,
+                'state' : state
             }
 
             record.append(obj)

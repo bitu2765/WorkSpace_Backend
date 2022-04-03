@@ -1,6 +1,6 @@
 from flask import Blueprint, make_response, render_template, request, g
 from app import db
-from models import Admin, Customer, Location, Purchase_hist
+from models import Admin, Customer, Location, Purchase_hist,Plan_price
 from userauth import admin_auth
 from datetime import date
 
@@ -18,7 +18,7 @@ def admin_profile():
 
     if bool(info):
         resp = make_response({
-            "status": 200,
+            "status_code": 200,
             "admin": {
                 "email": info[0],
                 "name": info[1],
@@ -74,6 +74,7 @@ def users_details():
         "paginate": meta,
         "customers": user_list
     })
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
 
 
@@ -165,4 +166,42 @@ def block_user():
                 if (len(limit_block) > 0):
                     block = Customer.query.filter(Customer.customer_id == 'vraj12').first()
                     block.block_user = 1
-                    db.session.commit()
+                    db.session.commit()  
+
+
+@admin.route('/admin/desk_details',methods = ["GET"])
+@admin_auth
+def admin_desk_details():
+                # Admin.tbl_location_id,Plan_price.plan_price_id
+    search_date = date.today()
+    location = db.session.query(Admin,Location).with_entities(
+            Location.capacity
+                ).filter(
+                    Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
+                ).first()
+
+    desk_details = db.session.query(Admin,Plan_price,Purchase_hist).with_entities(
+        Purchase_hist.desk_no
+                ).filter(
+                    Admin.admin_email == g.token,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date
+                ).all()
+    print(search_date)
+
+    desk_detail_list = [ 0 for i in range(location['capacity']) ]
+
+    for i in desk_details:
+        for j in i['desk_no'].split(","):
+            # print(j)
+            desk_detail_list[int(j)-1]=1
+
+    resp = make_response(
+            {
+                "status_code": 200,
+                "location":desk_detail_list,
+                # "date":date,
+                "message": "No one have purchase any plan"
+            }
+        )
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp
+            
