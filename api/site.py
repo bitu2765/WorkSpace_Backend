@@ -1,4 +1,6 @@
-from flask import Blueprint, make_response, render_template, request
+from operator import and_
+
+from flask import Blueprint, make_response, render_template, request, jsonify
 import routes
 import logging
 from app import db, mail
@@ -109,13 +111,13 @@ def locations():
             city = l.city
             state = l.state
             id = l.location_id
-            add =l.address
-            
+            add = l.address
+
             obj = {
-                'id' : id,
-                'add' : add,
-                'city' : city,
-                'state' : state
+                'id': id,
+                'add': add,
+                'city': city,
+                'state': state
             }
 
             record.append(obj)
@@ -140,3 +142,50 @@ def locations():
         )
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
+
+
+# retrieve detail of plan based on passed location_id and plan_id
+@site.route('/user/location_plan_details', methods=['GET'])
+def location_plan_detail():
+    args = request.args
+    plan_id = args['plan_id']
+    location_id = args['location_id']
+    # print('plan_id ', plan_id)
+    # print('location_id', location_id)
+    # joint query
+    info = Plan_price.query.join(
+        Location, Location.location_id == Plan_price.tbl_location_id
+    ).join(
+        Subscription_plan, Subscription_plan.plan_id == Plan_price.tbl_plan_id
+    ).with_entities(
+        Plan_price.tbl_plan_id, Plan_price.tbl_plan_id, Subscription_plan.capacity, Subscription_plan.capacity,
+        Subscription_plan.duration, Subscription_plan.discount, Location.address, Location.city, Location.state,
+        Location.capacity
+    ).filter(
+        and_(
+            Plan_price.tbl_location_id == location_id, Plan_price.tbl_plan_id == plan_id
+        )
+    ).all()
+    if bool(info):
+        pln_detail = {
+            "plan_id": info[0][0],
+            "location_id": location_id,
+            "plan_capacity": info[0][2],
+            "plan_duration": info[0][4],
+            "discount": info[0][5],
+            "address": info[0][6],
+            "city": info[0][7],
+            "state": info[0][8],
+            "location capacity": info[0][9]
+        }
+        # print(pln_detail)
+        resp = make_response({
+            "status_code": 200,
+            "plan details": pln_detail
+        })
+    else:
+        resp = make_response({
+            "status_code": 200,
+            "message": "Please provide valid Location Id or Valid Plan Id"
+        })
+    return resp
