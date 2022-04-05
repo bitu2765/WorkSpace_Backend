@@ -495,6 +495,18 @@ def user_desk_details():
     # print(data)
     search_date = request.args.get("date")
     location_id = request.args.get('location')
+
+    valid_location_id = Location.query.filter_by(location_id=location_id).all()
+    if not (bool(valid_location_id)):
+        resp = make_response(
+            {
+                "status_code": 401,
+                "message": "location not exist"
+            }
+        )
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
+
     location = db.session.query(Location).with_entities(
         Location.capacity
     ).filter(

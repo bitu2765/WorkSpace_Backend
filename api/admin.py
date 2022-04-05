@@ -180,26 +180,30 @@ def admin_desk_details():
                     Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
                 ).first()
 
-    desk_details = db.session.query(Admin,Plan_price,Purchase_hist).with_entities(
-        Purchase_hist.desk_no
+    desk_details = db.session.query(Customer,Admin,Plan_price,Purchase_hist).with_entities(
+        Purchase_hist.desk_no,Purchase_hist.end_date,Customer.name
                 ).filter(
-                    Admin.admin_email == g.token,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date
+                    Admin.admin_email == g.token,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
                 ).all()
-    print(search_date)
+    # print(desk_details)
 
-    desk_detail_list = [ 0 for i in range(location['capacity']) ]
+    desk_detail_list = [ {"desk_no":i+1,"booked":0} for i in range(location['capacity']) ]
 
     for i in desk_details:
         for j in i['desk_no'].split(","):
             # print(j)
-            desk_detail_list[int(j)-1]=1
+            desk_detail_list[int(j)-1]["booked"]=1
+            desk_detail_list[int(j)-1]["expiry_date"]=i['end_date']
+            desk_detail_list[int(j)-1]["customer_name"]=i['name']
+
+
 
     resp = make_response(
             {
                 "status_code": 200,
-                "location":desk_detail_list,
+                "desks":desk_detail_list,
                 # "date":date,
-                "message": "No one have purchase any plan"
+                "message": "Desk details fetched Successfully"
             }
         )
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
