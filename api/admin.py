@@ -219,3 +219,44 @@ def block_user():
                     block.block_user = 1
                     db.session.commit()
                     print('Compose Mail for Plan Expired.')
+
+
+@admin.route('/admin/desk_details',methods = ["GET"])
+@admin_auth
+def admin_desk_details():
+                # Admin.tbl_location_id,Plan_price.plan_price_id
+    search_date = date.today()
+    location = db.session.query(Admin,Location).with_entities(
+            Location.capacity
+                ).filter(
+                    Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
+                ).first()
+
+    desk_details = db.session.query(Customer,Admin,Plan_price,Purchase_hist).with_entities(
+        Purchase_hist.desk_no,Purchase_hist.end_date,Customer.name
+                ).filter(
+                    Admin.admin_email == g.token,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
+                ).all()
+    # print(desk_details)
+
+    desk_detail_list = [ {"desk_no":i+1,"booked":0} for i in range(location['capacity']) ]
+
+    for i in desk_details:
+        for j in i['desk_no'].split(","):
+            # print(j)
+            desk_detail_list[int(j)-1]["booked"]=1
+            desk_detail_list[int(j)-1]["expiry_date"]=i['end_date']
+            desk_detail_list[int(j)-1]["customer_name"]=i['name']
+
+
+
+    resp = make_response(
+            {
+                "status_code": 200,
+                "desks":desk_detail_list,
+                # "date":date,
+                "message": "Desk details fetched Successfully"
+            }
+        )
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp

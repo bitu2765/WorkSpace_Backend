@@ -4,7 +4,7 @@ import hashlib
 from app import db, mail
 from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan
 from flask_mail import Mail, Message
-from datetime import date, timedelta
+from datetime import date,datetime, timedelta
 from sqlalchemy import and_
 import json
 import math
@@ -495,7 +495,9 @@ def user_desk_details():
     # print(data)
     search_date = request.args.get("date")
     location_id = request.args.get('location')
-
+    # print(search_date)
+    if search_date=="":
+        search_date = datetime.now()
     valid_location_id = Location.query.filter_by(location_id=location_id).all()
     if not (bool(valid_location_id)):
         resp = make_response(
