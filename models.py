@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from enum import auto
 from app import db
 
 
@@ -89,7 +90,7 @@ class Purchase_hist(db.Model):
 class Userlog(db.Model):
     __tablename__ = 'tbl_user_log'
     login_token = db.Column(db.String(150), primary_key=True, unique=True, nullable=False)
-    customer_id = db.Column(db.String(50), db.ForeignKey('tbl_customer.customer_id'), nullable=False)
+    customer_id = db.Column(db.String(8), db.ForeignKey('tbl_customer.customer_id'), nullable=False)
     expiry_date = db.Column(db.DateTime)
 
     def __init__(self, login_token, customer_id):
@@ -110,3 +111,10 @@ class Adminlog(db.Model):
         self.expiry_date = datetime.now() + timedelta(days=31)
 
     # db.create_all()
+
+class BlockUserlog(db.Model):
+    __tablename__ = 'tbl_block_user_log'
+    block_user_log_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    tbl_customer_id = db.Column(db.String(8), db.ForeignKey('tbl_customer.customer_id'), nullable=False)
+    mail_sent_date = db.Column(db.Date)
+    mail_block_user = db.Column(db.Boolean, default=False)    

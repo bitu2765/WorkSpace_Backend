@@ -30,9 +30,9 @@ db.create_all()
 import routes
 from api.admin import block_user
 
-# scheduler = APScheduler()
-# scheduler.add_job(id='Testing', func=block_user, trigger='interval', seconds=10)
-# scheduler.start()
+scheduler = APScheduler()
+scheduler.add_job(id='BlockUser', func=block_user, trigger='interval', seconds=24*60*60)
+scheduler.start()
 
 if __name__ == "__main__":
     # db.create_all()

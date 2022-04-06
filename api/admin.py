@@ -1,8 +1,9 @@
 from flask import Blueprint, make_response, render_template, request, g
 from app import db
-from models import Admin, Customer, Location, Purchase_hist,Plan_price
+from models import Admin, BlockUserlog, Customer, Location, Purchase_hist,Plan_price
 from userauth import admin_auth
 from datetime import date
+from sqlalchemy import and_
 
 admin = Blueprint('admin', __name__)
 
@@ -42,7 +43,7 @@ def admin_profile():
 
 # all users details for admin side to show list of users
 @admin.route('/admin/user_details', methods=['GET'])
-# @admin_auth
+@admin_auth
 def users_details():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 1, type=int)
@@ -80,8 +81,8 @@ def users_details():
 
 # all user purchase plan history
 
-@admin.route('/admin/user_purchase_plan_details', methods=["GET"])
-# @admin_auth
+@admin.route('/admin/user_purchase_plan_details',methods = ["GET"])
+@admin_auth
 def user_details():
     userInfo = db.session.query(Customer, Purchase_hist).filter(
         Customer.customer_id == Purchase_hist.tbl_customer_id).all()
@@ -129,8 +130,6 @@ def user_details():
         resp.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp
 
-
-# Changes Required this is not uptodate
 def block_user():
     list_unblock_user = Customer.query.with_entities(Customer.customer_id).filter_by(block_user=0).all()
     today = date.today()
@@ -141,18 +140,17 @@ def block_user():
 
         for i in range(0, len(list_user)):
             purchase_history = Purchase_hist.query.with_entities(
-                Purchase_hist.purchase_date, Purchase_hist.start_date, Purchase_hist.end_date
-            ).filter(
-                Purchase_hist.tbl_customer_id == list_user[i]
-            ).all()
-
+                    Purchase_hist.purchase_date, Purchase_hist.start_date, Purchase_hist.end_date
+                ).filter(
+                    Purchase_hist.tbl_customer_id == list_user[i]
+                ).all()
             if bool(purchase_history):
                 limit_email = []
                 limit_block = []
-                for i in range(0, len(purchase_history)):
-                    purchase_date = today - purchase_history[i][0]
-                    start_date = today - purchase_history[i][1]
-                    end_date = today - purchase_history[i][2]
+                for j in range(0, len(purchase_history)):
+                    purchase_date = today - purchase_history[j][0]
+                    start_date = today - purchase_history[j][1]
+                    end_date = today - purchase_history[j][2]
 
                     if (int(purchase_date.days) > 25 and int(purchase_date.days) < 30) or (
                             int(start_date.days) > 25 and int(start_date.days) < 30) or (
@@ -161,51 +159,63 @@ def block_user():
                     if (int(purchase_date.days) >= 30 or int(start_date.days) >= 30 or int(end_date.days) >= 30):
                         limit_block.append(1)
 
-                if (len(limit_email) > 0):
-                    print("Compose Mail")
-                if (len(limit_block) > 0):
-                    block = Customer.query.filter(Customer.customer_id == 'vraj12').first()
+                if(len(limit_email)>0):
+                    is_mail_sent = BlockUserlog.query.filter(
+                            and_(
+                                BlockUserlog.tbl_customer_id == list_user[i], 
+                                BlockUserlog.mail_sent_date == today
+                            )
+                        ).first()
+                    
+                    if not(is_mail_sent):
+                        block_user_log = BlockUserlog(
+                            tbl_customer_id = list_user[i],
+                            mail_sent_date = today,
+                            mail_block_user = 1
+                        )
+                        db.session.add(block_user_log)
+                        db.session.commit()
+
+                        print('Compose Mail for Plan will Expire.')
+                if(len(limit_block)>0):
+                    block = Customer.query.filter(Customer.customer_id == list_user[i]).first()
                     block.block_user = 1
-                    db.session.commit()  
+                    db.session.commit()
+                    print('Compose Mail for Plan Expired.')     
+            else:
+                customer_registered_date = Customer.query.with_entities(Customer.registration_date).filter(
+                    Customer.tbl_customer_id == list_user[i]).all()
+                if bool(customer_registered_date):
+                    limit_email = []
+                    limit_block = []
+                    for j in range(0, len(customer_registered_date)):
+                        registered_date = today - customer_registered_date[j][0]
 
+                        if(int(registered_date.days)>25 and int(registered_date.days)<30):
+                            limit_email.append(1)
+                        if(int(registered_date)>=30):
+                            limit_block.append(1)
+                    
+                    if(len(limit_email)>0):
+                        is_mail_sent = BlockUserlog.query.filter(
+                            and_(
+                                BlockUserlog.tbl_customer_id == list_user[i], 
+                                BlockUserlog.mail_sent_date == today
+                            )
+                        ).first()
+                    
+                    if not(is_mail_sent):
+                        block_user_log = BlockUserlog(
+                            tbl_customer_id = list_user[i],
+                            mail_sent_date = today,
+                            mail_block_user = 1
+                        )
+                        db.session.add(block_user_log)
+                        db.session.commit()
 
-@admin.route('/admin/desk_details',methods = ["GET"])
-@admin_auth
-def admin_desk_details():
-                # Admin.tbl_location_id,Plan_price.plan_price_id
-    search_date = date.today()
-    location = db.session.query(Admin,Location).with_entities(
-            Location.capacity
-                ).filter(
-                    Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
-                ).first()
-
-    desk_details = db.session.query(Customer,Admin,Plan_price,Purchase_hist).with_entities(
-        Purchase_hist.desk_no,Purchase_hist.end_date,Customer.name
-                ).filter(
-                    Admin.admin_email == g.token,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
-                ).all()
-    # print(desk_details)
-
-    desk_detail_list = [ {"desk_no":i+1,"booked":0} for i in range(location['capacity']) ]
-
-    for i in desk_details:
-        for j in i['desk_no'].split(","):
-            # print(j)
-            desk_detail_list[int(j)-1]["booked"]=1
-            desk_detail_list[int(j)-1]["expiry_date"]=i['end_date']
-            desk_detail_list[int(j)-1]["customer_name"]=i['name']
-
-
-
-    resp = make_response(
-            {
-                "status_code": 200,
-                "desks":desk_detail_list,
-                # "date":date,
-                "message": "Desk details fetched Successfully"
-            }
-        )
-    resp.headers['Access-Control-Allow-Credentials'] = 'true'
-    return resp
-            
+                        print('Compose Mail for Plan will Expire.')
+                if(len(limit_block)>0):
+                    block = Customer.query.filter(Customer.customer_id == list_user[i]).first()
+                    block.block_user = 1
+                    db.session.commit()
+                    print('Compose Mail for Plan Expired.')
