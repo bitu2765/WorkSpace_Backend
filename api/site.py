@@ -162,13 +162,19 @@ def location_plan_detail():
     ).with_entities(
         Plan_price.tbl_plan_id, Plan_price.tbl_plan_id, Subscription_plan.capacity, Subscription_plan.capacity,
         Subscription_plan.duration, Subscription_plan.discount, Location.address, Location.city, Location.state,
-        Location.capacity
+        Location.capacity, Plan_price.price
     ).filter(
         and_(
             Plan_price.tbl_location_id == location_id, Plan_price.tbl_plan_id == plan_id
         )
     ).all()
     if bool(info):
+        if info[0][2] == 1:
+            plan_name = "Single"
+        elif info[0][2] == 2:
+            plan_name = "Double"
+        elif info[0][2] == 4:
+            plan_name = "Quad"
         pln_detail = {
             "plan_id": info[0][0],
             "location_id": location_id,
@@ -178,7 +184,10 @@ def location_plan_detail():
             "address": info[0][6],
             "city": info[0][7],
             "state": info[0][8],
-            "location capacity": info[0][9]
+            "location_capacity": info[0][9],
+            "plan_price": info[0][10],
+            "plan_type":plan_name
+            
         }
         # print(pln_detail)
         resp = make_response({
