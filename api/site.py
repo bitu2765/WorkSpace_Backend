@@ -64,12 +64,14 @@ def plans_for_location(location_id):
         records = []
 
         for p, s in plansInfo:
+            planId = str(s.plan_id)
             discount = str(s.discount)
             planPrice = str(p.price)
             validity = str(s.duration)
             planType = "Solo" if (s.capacity == 1) else "Duo" if (s.capacity == 2) else "Squade"
 
             obj = {
+                'plan_id' : planId,
                 'plan_type': planType,
                 'validity': validity,
                 'plan_price': planPrice,
