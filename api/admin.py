@@ -1,6 +1,6 @@
 from flask import Blueprint, make_response, render_template, request, g
 from app import db
-from models import Admin, BlockUserlog, Customer, Location, Purchase_hist,Plan_price
+from models import Admin, BlockUserlog, Customer, Location, Purchase_hist,Plan_price, Subscription_plan
 from userauth import admin_auth
 from datetime import date
 from sqlalchemy import and_
@@ -220,6 +220,57 @@ def block_user():
                     db.session.commit()
                     print('Compose Mail for Plan Expired.')
 
+@admin.route('/admin/plan_details', methods=["GET"])
+@admin_auth
+def admin_plan_details():
+    admin_location = Admin.query.with_entities(Admin.tbl_location_id).filter(Admin.admin_email == g.token).first()
+    print(admin_location[0])
+    if bool(admin_location):
+        plans = Subscription_plan.query.join(
+                Plan_price, Subscription_plan.plan_id == Plan_price.tbl_plan_id
+            ).with_entities(Subscription_plan.plan_id, Subscription_plan.capacity, Subscription_plan.duration, Plan_price.price, Subscription_plan.discount).filter(
+                Plan_price.tbl_location_id == admin_location[0]
+            ).all()
+        
+        if bool(plans):
+            json_list=[]
+            for i in range(0, len(plans)):
+                if plans[i][1] == 1:
+                    plan_type = "Solo"
+                elif plans[i][1] == 2:
+                    plan_type = "Dual"
+                elif plans[i][1] == 4:
+                    plan_type = "Quad"
+    
+                value = {
+                    "plan_id": plans[i][0],
+                    "plan_type": plan_type,
+                    "validity": plans[i][2],
+                    "plan_price": plans[i][3],
+                    "discount": plans[i][4]
+                }
+
+                json_list.append(value)
+            resp = make_response({
+                "status_code": 200,
+                "location_plans": json_list
+            })
+            resp.headers['Access-Control-Allow-Credentials'] = 'true'
+            return resp
+        else:
+            resp = make_response({
+                "status_code": 404,
+                "message": "No Plans at current location."
+            })
+            resp.headers['Access-Control-Allow-Credentials'] = 'true'
+            return resp
+    else:
+        resp = make_response({
+            "status_code": 404,
+            "message": "Admin doesn't exist."
+        })
+        resp.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp
 
 @admin.route('/admin/desk_details',methods = ["GET"])
 @admin_auth
