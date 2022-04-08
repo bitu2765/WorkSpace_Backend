@@ -1,4 +1,4 @@
-from flask import Flask,Blueprint
+from flask import Flask, Blueprint
 from flask_sqlalchemy import SQLAlchemy
 from flask_mail import Mail
 from flask_cors import CORS
@@ -25,15 +25,16 @@ mail = Mail(app)
 db = SQLAlchemy(app)
 
 import models
+
 db.create_all()
 
 import routes
 from api.admin import block_user
 
 scheduler = APScheduler()
-scheduler.add_job(id='BlockUser', func=block_user, trigger='interval', seconds=24*60*60)
+scheduler.add_job(id='BlockUser', func=block_user, trigger='interval', seconds=24 * 60 * 60)
 scheduler.start()
 
 if __name__ == "__main__":
     # db.create_all()
-    app.run(host='192.168.43.123',port=5000)
+    app.run(host='192.168.43.123', port=5000)

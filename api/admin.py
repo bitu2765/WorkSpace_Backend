@@ -4,6 +4,7 @@ from models import Admin, BlockUserlog, Customer, Location, Purchase_hist,Plan_p
 from userauth import admin_auth
 from datetime import date
 from sqlalchemy import and_
+from api.user import user_desk_details
 
 admin = Blueprint('admin', __name__)
 
@@ -46,7 +47,7 @@ def admin_profile():
 @admin_auth
 def users_details():
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 1, type=int)
+    per_page = request.args.get('per_page', 10, type=int)
 
     users = Customer.query.paginate(page=page, per_page=per_page, error_out=False)
     user_list = []
@@ -309,5 +310,27 @@ def admin_desk_details():
                 "message": "Desk details fetched Successfully"
             }
         )
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp
+
+
+
+@admin.route('/admin/desks',methods = ["GET"])
+@admin_auth
+def admin_desk_status():
+
+    number_of_desks = db.session.query(Admin,Location).with_entities(
+        Location.capacity
+    ).filter(
+        Admin.tbl_location_id == Location.location_id , Admin.admin_email == g.token
+    ).first()
+    resp = make_response(
+        {
+            "status_code": 200,
+            "desks": number_of_desks["capacity"],
+            # "date":date,
+            "message": "No one have purchase any plan"
+        }
+    )
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp

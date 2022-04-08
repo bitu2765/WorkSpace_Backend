@@ -68,7 +68,7 @@ def plans_for_location(location_id):
             discount = str(s.discount)
             planPrice = str(p.price)
             validity = str(s.duration)
-            planType = "Solo" if (s.capacity == 1) else "Duo" if (s.capacity == 2) else "Squade"
+            planType = "Solo" if (s.capacity == 1) else "Dual" if (s.capacity == 2) else "Quad"
 
             obj = {
                 'plan_id' : planId,

@@ -1,3 +1,4 @@
+from unicodedata import name
 from flask import Blueprint, make_response, render_template, request, g
 import uuid
 import hashlib
@@ -24,14 +25,22 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
+@user.route('/mail_template_render', methods = ['GET'])
+def mail_render():
+    return render_template('/mails/mail.html')
+
+# temporart mail api 
 @user.route('/send_mail', methods=['GET'])
 def send_mail():
     msg = Message(
         'Hello, From Motorola',
         sender='veetmoradiya7823@gmail.com',
-        recipients=['bhautiksudani2765@gmail.com']
+        recipients=['19it069@charusat.edu.in']
     )
     msg.body = 'Hello Flask message sent from Flask-Mail'
+    username = "Moradiya Veet"
+    link = "http://localhost:5000/verify_user"
+    msg.html = render_template('/mails/mail.html', name=username, link=link)
     mail.send(msg)
     return "Send Successfully"
 
@@ -95,14 +104,15 @@ def temp_user_registration():
                     logger.info('New User created with username : {0}'.format(customer_id))
                     # mail code
                     msg = Message(
-                        'Hello, From ',
+                        'WorkSpace - Registration Confirmation',
                         sender='veetmoradiya7823@gmail.com',
                         recipients=[email]
                     )
                     # obj = urlparse(request.base_url)
                     verify_url = str('http://' + request.host + '/verify_user?token=' + str(sender_uuid))
                     print(verify_url)
-                    msg.body = 'Hello User, please verify your self by clicking on this link \nLink : ' + verify_url
+                    username = customer_id
+                    msg.html = render_template('/mails/registration_mail.html', name=username, link=verify_url)
                     mail.send(msg)
                     # log
                     logger.info('Mail is send to user : {0} with link as : {1}'.format(customer_id, verify_url))
@@ -540,3 +550,5 @@ def user_desk_details():
     )
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
+
+

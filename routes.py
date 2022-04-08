@@ -12,4 +12,3 @@ app.register_blueprint(log)
 app.register_blueprint(admin)
 app.register_blueprint(site)
 app.register_blueprint(user)
-
