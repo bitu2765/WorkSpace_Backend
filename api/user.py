@@ -5,7 +5,7 @@ import hashlib
 from app import db, mail
 from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan
 from flask_mail import Mail, Message
-from datetime import date,datetime, timedelta
+from datetime import date, datetime, timedelta
 from sqlalchemy import and_
 import json
 import math
@@ -25,11 +25,17 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 
-@user.route('/mail_template_render', methods = ['GET'])
+@user.route('/mail_template_render', methods=['GET'])
 def mail_render():
-    return render_template('/mails/mail.html')
+    return render_template('/mails/registration_mail.html')
 
-# temporart mail api 
+
+@user.route('/book_mail', methods=['GET'])
+def book_mail_render():
+    return render_template('/mails/booking_mail.html')
+
+
+# temporart mail api
 @user.route('/send_mail', methods=['GET'])
 def send_mail():
     msg = Message(
@@ -336,20 +342,20 @@ def purchase_plan():
     plan_price_id = Plan_price.query.with_entities(Plan_price.plan_price_id).filter(
         Plan_price.tbl_location_id == location_id).all()
 
-    alloted_desk_no = []
+    allocated_desk_no = []
     for i in range(0, len(plan_price_id)):
-        deskno = Purchase_hist.query.with_entities(Purchase_hist.desk_no).filter(
+        desk_no = Purchase_hist.query.with_entities(Purchase_hist.desk_no).filter(
             and_(Purchase_hist.tbl_plan_price_id == plan_price_id[i][0], Purchase_hist.end_date > start_date)).all()
-        if bool(deskno):
-            for j in range(0, len(deskno)):
-                alloted_desk_no.append(list(map(int, deskno[j][0].split(','))))
+        if bool(desk_no):
+            for j in range(0, len(desk_no)):
+                allocated_desk_no.append(list(map(int, desk_no[j][0].split(','))))
         else:
             continue
 
-    final_alloted_desk_no = []
-    for i in range(0, len(alloted_desk_no)):
-        for j in range(0, len(alloted_desk_no[i])):
-            final_alloted_desk_no.append(alloted_desk_no[i][j])
+    final_allocated_desk_no = []
+    for i in range(0, len(allocated_desk_no)):
+        for j in range(0, len(allocated_desk_no[i])):
+            final_allocated_desk_no.append(allocated_desk_no[i][j])
 
     capacity = Location.query.with_entities(Location.capacity).filter(
         Location.location_id == location_id).first()
@@ -357,12 +363,12 @@ def purchase_plan():
     for i in range(1, capacity[0] + 1):
         desk_slots[i] = True
 
-    for i in range(0, len(final_alloted_desk_no)):
-        desk_slots[final_alloted_desk_no[i]] = False
+    for i in range(0, len(final_allocated_desk_no)):
+        desk_slots[final_allocated_desk_no[i]] = False
 
     avail_slots = []
     for key, val in desk_slots.items():
-        if val == True:
+        if val:
             avail_slots.append(key)
     required_desk_slots = Subscription_plan.query.with_entities(Subscription_plan.capacity).filter(
         Subscription_plan.plan_id == plan_id).first()
@@ -402,7 +408,7 @@ def purchase_plan():
         and_(Plan_price.tbl_location_id == location_id, Plan_price.tbl_plan_id == plan_id)
     ).first()
 
-    purchase_history = Purchase_hist(
+    purchased_history = Purchase_hist(
         tbl_customer_id=g.token,
         tbl_plan_price_id=get_plan_price_id[0],
         desk_no=desk_no,
@@ -411,9 +417,30 @@ def purchase_plan():
         start_date=start_date,
         end_date=end_date
     )
-    db.session.add(purchase_history)
+    db.session.add(purchased_history)
     db.session.commit()
 
+    # mail code
+    email_id = Customer.query.with_entities(Customer.email).filter(Customer.customer_id == g.token).first()
+    modified_start_date = str(start_date)[:11]
+    location_address = Location.query.with_entities(Location.address, Location.city, Location.state).filter(Location.location_id == location_id).first()
+    print(email_id, g.token, get_plan_price_id[0], desk_no, price, purchase_date, start_date, end_date, modified_start_date, location_address)
+    msg = Message(
+        'WorkSpace - Booking Confirmation',
+        sender='veetmoradiya7823@gmail.com',
+        recipients=[email_id[0]]
+    )
+    msg.html = render_template('/mails/booking_mail.html',
+                               user_id=g.token,
+                               desk_no=desk_no,
+                               plan_price=price,
+                               plan_start_date=modified_start_date,
+                               plan_end_date=end_date,
+                               location_address=location_address[0],
+                               city=location_address[1],
+                               state=location_address[2]
+                               )
+    mail.send(msg)
     resp = make_response({
         "status_code": 200,
         "message": "Plan purchased Successfully."
@@ -506,7 +533,7 @@ def user_desk_details():
     search_date = request.args.get("date")
     location_id = request.args.get('location')
     # print(search_date)
-    if search_date=="":
+    if search_date == "":
         search_date = datetime.now()
     valid_location_id = Location.query.filter_by(location_id=location_id).all()
     if not (bool(valid_location_id)):
@@ -550,5 +577,3 @@ def user_desk_details():
     )
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
-
-
