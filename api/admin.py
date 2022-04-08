@@ -281,7 +281,7 @@ def admin_desk_details():
     if search_date == '':
         search_date = date.today()
     location = db.session.query(Admin,Location).with_entities(
-            Location.capacity
+            Location.capacity,Location.location_id
                 ).filter(
                     Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
                 ).first()
@@ -289,9 +289,9 @@ def admin_desk_details():
     desk_details = db.session.query(Customer,Plan_price,Purchase_hist).with_entities(
         Purchase_hist.desk_no,Purchase_hist.end_date,Customer.name
                 ).filter(
-                    Plan_price.tbl_location_id == location,Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
+                    Plan_price.tbl_location_id == location["location_id"],Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
                 ).all()
-    # print(desk_details)
+    # print(location)
 
     desk_detail_list = [ {"desk_no":i+1,"booked":0} for i in range(location['capacity']) ]
 
@@ -330,6 +330,43 @@ def admin_desk_status():
         {
             "status_code": 200,
             "desks": number_of_desks["capacity"],
+            # "date":date,
+            "message": "No one have purchase any plan"
+        }
+    )
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    return resp
+
+
+@admin.route('/admin/desk_statistics',methods = ["GET"])
+@admin_auth
+def admin_desk_statistics():
+
+    desk_no = request.args.get("desk_no")
+    search_date = date.today()
+    location = db.session.query(Admin,Location).with_entities(
+            Location.location_id
+                ).filter(
+                    Admin.admin_email == g.token , Admin.tbl_location_id == Location.location_id
+                ).first()
+
+    desk_details = db.session.query(Plan_price,Purchase_hist).with_entities(
+        Purchase_hist.desk_no,Purchase_hist.end_date,Purchase_hist.start_date
+                ).filter(
+                    Plan_price.tbl_location_id == location["location_id"],Purchase_hist.tbl_plan_price_id == Plan_price.plan_price_id,Purchase_hist.end_date>=search_date#Purchase_hist.start_date<=search_date,Purchase_hist.end_date>=search_date,Purchase_hist.tbl_customer_id == Customer.customer_id
+                ).all()
+
+    booked_dates =[]
+
+    for i in desk_details:
+        if str(desk_no) in i['desk_no'].split(","):
+            booked_dates.append([i['start_date'].strftime("%Y-%m-%d"),i['end_date'].strftime("%Y-%m-%d")])
+            
+
+    resp = make_response(
+        {
+            "status_code": 200,
+            "booking_dates": booked_dates,
             # "date":date,
             "message": "No one have purchase any plan"
         }
