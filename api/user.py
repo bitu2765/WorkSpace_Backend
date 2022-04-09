@@ -3,7 +3,7 @@ from flask import Blueprint, make_response, render_template, request, g
 import uuid
 import hashlib
 from app import db, mail
-from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan
+from models import Customer, Plan_price, Purchase_hist, Location, Subscription_plan, UserActivation
 from flask_mail import Mail, Message
 from datetime import date, datetime, timedelta
 from sqlalchemy import and_
@@ -296,13 +296,9 @@ def upcoming_plan():
 @user.route("/user/purchase_plan", methods=['POST'])
 @user_auth
 def purchase_plan():
-    # print(1)
     errors = []
     is_error = False
 
-    # if request.method == 'POST':
-    #     content_type = request.headers.get('Content-Type')
-    #     if content_type == 'application/json':
     data = request.json
     plan_id = data['plan_id']
     location_id = data['location_id']
@@ -447,14 +443,6 @@ def purchase_plan():
     })
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
-    # else:
-    #     resp = make_response({
-    #         "status_code": 415,
-    #         "message": "Content-Type not supported!"
-    #     })
-    #     resp.headers['Access-Control-Allow-Credentials'] = 'true'
-    #     return resp
-
 
 @user.route("/user/purchase_history", methods=['GET'])
 @user_auth
@@ -577,3 +565,50 @@ def user_desk_details():
     )
     resp.headers['Access-Control-Allow-Credentials'] = 'true'
     return resp
+
+@user.route("/user/activation_request", methods = ["POST"])
+@user_auth
+def activation_request():
+    data = request.json
+    email = data['email']
+
+    check_mail = Customer.query.filter_by(email=email).first()
+    if not bool(check_mail):
+        resp1 = make_response({
+            "status_code": 404,
+            "message": "Mail id doesn't exist."
+        })
+        resp1.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp1
+    
+    already_requested = UserActivation.query.filter_by(email=email).first()
+    if bool(already_requested):
+        resp2 = make_response({
+            "status_code": 404,
+            "message": "Already sent an activation request."
+        })
+        resp2.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp2
+    
+    check_block = Customer.query.filter(
+            and_(Customer.email == email, Customer.block_user == 1)
+        ).first()
+    if bool(check_block):
+        user_actvation = UserActivation(
+            email=email
+        )
+        db.session.add(user_actvation)
+        db.session.commit()
+
+        resp = make_response({
+            "status_code": 200,
+            "message": "Activation Request sent Successfully."
+        })
+        resp.headers['Access-Control-Allow-Credentails'] = 'true'
+        return resp
+    else:
+        resp3 = make_response({
+            "status_code": 404,
+            "message": "User is already active."
+        })
+        return resp3
