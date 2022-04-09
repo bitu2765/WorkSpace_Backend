@@ -72,6 +72,7 @@ def plans_for_location(location_id):
 
             obj = {
                 'plan_id' : planId,
+                'plan_capacity':s.capacity,
                 'plan_type': planType,
                 'validity': validity,
                 'plan_price': planPrice,

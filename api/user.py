@@ -115,7 +115,7 @@ def temp_user_registration():
                         recipients=[email]
                     )
                     # obj = urlparse(request.base_url)
-                    verify_url = str('http://' + request.host + '/verify_user?token=' + str(sender_uuid))
+                    verify_url = str('http://localhost:4200/verifyemail/' + str(sender_uuid))
                     print(verify_url)
                     username = customer_id
                     msg.html = render_template('/mails/registration_mail.html', name=username, link=verify_url)
@@ -131,13 +131,14 @@ def temp_user_registration():
 
 @user.route('/verify_user', methods=['GET'])
 def verify_user():
+    print(1)
     tkn = str(request.args.get('token'))
     exist = bool(db.session.query(Customer).filter_by(token=tkn).first())
     print(exist)
     if exist:
         user_detail = Customer.query.filter_by(token=tkn).first()
         if user_detail.email_verify:
-            return {"message": "User email already verified, please login now."}
+            return {"message": "User email already verified, please login now.","status_code":200}
         else:
             user_detail.email_verify = True
             db.session.commit()
@@ -420,7 +421,7 @@ def purchase_plan():
     email_id = Customer.query.with_entities(Customer.email).filter(Customer.customer_id == g.token).first()
     modified_start_date = str(start_date)[:11]
     location_address = Location.query.with_entities(Location.address, Location.city, Location.state).filter(Location.location_id == location_id).first()
-    print(email_id, g.token, get_plan_price_id[0], desk_no, price, purchase_date, start_date, end_date, modified_start_date, location_address)
+    # print(email_id, g.token, get_plan_price_id[0], desk_no, price, purchase_date, start_date, end_date, modified_start_date, location_address)
     msg = Message(
         'WorkSpace - Booking Confirmation',
         sender='veetmoradiya7823@gmail.com',

@@ -245,6 +245,7 @@ def admin_plan_details():
     
                 value = {
                     "plan_id": plans[i][0],
+                    "capacity": plans[i][1],
                     "plan_type": plan_type,
                     "validity": plans[i][2],
                     "plan_price": plans[i][3],
