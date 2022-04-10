@@ -3,7 +3,7 @@ from app import db
 from models import Admin, BlockUserlog, Customer, Location, Purchase_hist,Plan_price, Subscription_plan
 from userauth import admin_auth
 from datetime import date
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 from api.user import user_desk_details
 
 admin = Blueprint('admin', __name__)
@@ -43,7 +43,7 @@ def admin_profile():
 
 
 # all users details for admin side to show list of users
-@admin.route('/admin/user_details', methods=['GET'])
+@admin.route('/admin/user_details', methods=['GET', 'POST'])
 @admin_auth
 def users_details():
     page = request.args.get('page', 1, type=int)
@@ -51,6 +51,38 @@ def users_details():
 
     users = Customer.query.paginate(page=page, per_page=per_page, error_out=False)
     user_list = []
+
+    if request.method == 'POST' and ('search_tag' in request.args):
+        search_tag = request.args["search_tag"]
+        search =  "%{}%".format(search_tag)
+        users = Customer.query.filter(or_(Customer.name.like(search), Customer.email.like(search))).paginate(page=page, per_page=per_page, error_out=False)
+        
+        for user in users.items:
+            _user = {
+                "name": user.name,
+                "email": user.email,
+                "email_verified": user.email_verify,
+                "is_block": user.block_user
+            }
+            user_list.append(_user)
+
+        meta = {
+            "page": users.page,
+            "pages": users.pages,
+            "total_count": users.total,
+            "prev_page": users.prev_num,
+            "next_page": users.next_num,
+            "has_next": users.has_next,
+            "has_prev": users.has_prev,
+        }
+
+        resp1 = make_response({
+            "status_code": "200",
+            "paginate": meta,
+            "customers": user_list
+        })
+        resp1.headers['Access-Control-Allow-Credentials'] = 'true'
+        return resp1    
 
     for user in users.items:
         _user = {
