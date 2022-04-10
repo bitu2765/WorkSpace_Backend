@@ -116,7 +116,7 @@ def temp_user_registration():
                     )
                     # obj = urlparse(request.base_url)
                     verify_url = str('http://localhost:4200/verifyemail/' + str(sender_uuid))
-                    print(verify_url)
+                    # print(verify_url)
                     username = customer_id
                     msg.html = render_template('/mails/registration_mail.html', name=username, link=verify_url)
                     mail.send(msg)

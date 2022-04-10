@@ -52,7 +52,7 @@ def users_details():
     users = Customer.query.paginate(page=page, per_page=per_page, error_out=False)
     user_list = []
 
-    if request.method == 'POST' and ('search_tag' in request.args):
+    if 'search_tag' in request.args:
         search_tag = request.args["search_tag"]
         search =  "%{}%".format(search_tag)
         users = Customer.query.filter(or_(Customer.name.like(search), Customer.email.like(search))).paginate(page=page, per_page=per_page, error_out=False)
