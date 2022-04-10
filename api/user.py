@@ -332,7 +332,7 @@ def purchase_plan():
     if is_error:
         resp2 = make_response({
             "status_code": 404,
-            "errors": errors
+            "error": errors
         })
         resp2.headers['Access-Control-Allow-Credentials'] = 'true'
         return resp2
