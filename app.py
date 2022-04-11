@@ -10,9 +10,10 @@ app.config['SECRET_KEY'] = '7df7599fecf2a862f0699c1b86acfbde'
 
 host = 'localhost'
 user = 'root'
-password = ''
+password = 'Twoowls20'
 database = 'moto_ps3_db'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://' + user + ':' + password + '@' + host + '/' + database
+# app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
